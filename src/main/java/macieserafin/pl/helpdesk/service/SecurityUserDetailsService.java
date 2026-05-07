@@ -1,0 +1,34 @@
+package macieserafin.pl.helpdesk.service;
+
+import macieserafin.pl.helpdesk.model.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class SecurityUserDetailsService implements UserDetailsService {
+
+    private final UserService userService;
+
+    public SecurityUserDetailsService(UserService userService) {
+        this.userService = userService;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userService.findByUsername(username)
+                .map(this::toUserDetails)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
+
+    private UserDetails toUserDetails(User user) {
+        return org.springframework.security.core.userdetails.User.withUsername(user.getUsername())
+                .password(user.getPassword())
+                .roles(user.getRole().name())
+                .disabled(!user.isEnabled())
+                .build();
+    }
+}
