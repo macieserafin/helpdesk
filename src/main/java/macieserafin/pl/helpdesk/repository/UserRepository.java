@@ -1,6 +1,6 @@
 package macieserafin.pl.helpdesk.repository;
 
-import macieserafin.pl.helpdesk.model.User;
+import macieserafin.pl.helpdesk.model.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

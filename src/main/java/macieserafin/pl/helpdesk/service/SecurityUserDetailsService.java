@@ -1,6 +1,7 @@
 package macieserafin.pl.helpdesk.service;
 
-import macieserafin.pl.helpdesk.model.User;
+import macieserafin.pl.helpdesk.model.entity.Role;
+import macieserafin.pl.helpdesk.model.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -25,9 +26,12 @@ public class SecurityUserDetailsService implements UserDetailsService {
     }
 
     private UserDetails toUserDetails(User user) {
-        return org.springframework.security.core.userdetails.User.withUsername(user.getUsername())
-                .password(user.getPassword())
-                .roles(user.getRole().name())
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getUsername())
+                .password(user.getPasswordHash())
+                .roles(user.getRoles().stream()
+                        .map(Role::getName)
+                        .toArray(String[]::new))
                 .disabled(!user.isEnabled())
                 .build();
     }
