@@ -20,6 +20,7 @@ public class SecurityConfig {
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/user", "/user/**").hasRole("USER")
                         .requestMatchers("/agent", "/agent/**").hasRole("AGENT")
+                        .requestMatchers("/api/users", "/api/users/**").authenticated()
                         .requestMatchers("/api/tickets", "/api/tickets/**").authenticated()
                         .requestMatchers("/api/agent", "/api/agent/**").authenticated()
                         .requestMatchers("/api/admin", "/api/admin/**").hasRole("ADMIN")

@@ -57,6 +57,99 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldManageUsersViaUserEndpoints() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String username = "managed-" + suffix;
+        String email = username + "@example.com";
+
+        String createdUserBody = mockMvc.perform(post("/api/admin/users")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "email": "%s",
+                                  "password": "managed123",
+                                  "roles": ["USER"],
+                                  "profile": {
+                                    "firstName": "Managed",
+                                    "lastName": "User",
+                                    "city": "Poznan"
+                                  }
+                                }
+                                """.formatted(username, email)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.profile.firstName").value("Managed"))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode createdUser = objectMapper.readTree(createdUserBody);
+        Long userId = createdUser.get("id").asLong();
+        assertThat(containsText(createdUser.get("roles"), "USER")).isTrue();
+
+        mockMvc.perform(get("/api/admin/users/{id}", userId)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(username));
+
+        String updatedUserBody = mockMvc.perform(patch("/api/admin/users/{id}", userId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "updated-%s",
+                                  "roles": ["AGENT"],
+                                  "profile": {
+                                    "phoneNumber": "+48 600 700 800",
+                                    "city": "Wroclaw"
+                                  }
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("updated-" + email))
+                .andExpect(jsonPath("$.profile.phoneNumber").value("+48 600 700 800"))
+                .andExpect(jsonPath("$.profile.city").value("Wroclaw"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode updatedUser = objectMapper.readTree(updatedUserBody);
+        assertThat(containsText(updatedUser.get("roles"), "AGENT")).isTrue();
+
+        mockMvc.perform(get("/api/users/me")
+                        .with(httpBasic(username, "managed123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(username));
+
+        mockMvc.perform(patch("/api/users/me/profile")
+                        .with(httpBasic(username, "managed123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "streetAddress": "Testowa 1"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profile.streetAddress").value("Testowa 1"));
+
+        mockMvc.perform(patch("/api/admin/users/{id}/enabled", userId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+    }
+
+    @Test
     void shouldHandleMainTicketFlow() throws Exception {
         String ticketTitle = "Flow ticket " + UUID.randomUUID();
 
@@ -187,6 +280,16 @@ class TicketFlowIntegrationTests {
         }
 
         throw new AssertionError("User not found in response: " + username);
+    }
+
+    private boolean containsText(JsonNode arrayNode, String value) {
+        for (JsonNode item : arrayNode) {
+            if (item.asText().equals(value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private String actionTypes(String responseBody) throws Exception {
