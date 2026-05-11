@@ -1,8 +1,10 @@
 package macieserafin.pl.helpdesk.service;
 
 import macieserafin.pl.helpdesk.dto.UserResponse;
+import macieserafin.pl.helpdesk.dto.UserProfileResponse;
 import macieserafin.pl.helpdesk.model.entity.Role;
 import macieserafin.pl.helpdesk.model.entity.User;
+import macieserafin.pl.helpdesk.model.entity.UserProfile;
 import macieserafin.pl.helpdesk.repository.RoleRepository;
 import macieserafin.pl.helpdesk.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,22 +40,31 @@ public class UserService {
     }
 
     @Transactional
-    public void createUserIfMissing(String username, String email, String rawPassword, String roleName) {
-        if (!userRepository.existsByUsername(username)) {
+    public void createUserIfMissing(String username, String email, String rawPassword, String roleName,
+                                    UserProfile profile) {
+        Optional<User> existingUser = userRepository.findByUsername(username);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            if (user.getProfile() == null && profile != null) {
+                user.setProfile(profile);
+            }
 
-            Role role = roleRepository.findByName(roleName)
-                    .orElseGet(() -> roleRepository.save(new Role(roleName)));
-
-            User user = new User(
-                    username,
-                    email,
-                    passwordEncoder.encode(rawPassword)
-            );
-
-            user.addRole(role);
-
-            userRepository.save(user);
+            return;
         }
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseGet(() -> roleRepository.save(new Role(roleName)));
+
+        User user = new User(
+                username,
+                email,
+                passwordEncoder.encode(rawPassword)
+        );
+
+        user.addRole(role);
+        user.setProfile(profile);
+
+        userRepository.save(user);
     }
 
     private UserResponse mapToUserResponse(User user) {
@@ -66,7 +77,25 @@ public class UserService {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                roleNames
+                user.isEnabled(),
+                roleNames,
+                mapToUserProfileResponse(user.getProfile())
+        );
+    }
+
+    private UserProfileResponse mapToUserProfileResponse(UserProfile profile) {
+        if (profile == null) {
+            return null;
+        }
+
+        return new UserProfileResponse(
+                profile.getId(),
+                profile.getFirstName(),
+                profile.getLastName(),
+                profile.getPhoneNumber(),
+                profile.getCity(),
+                profile.getStreetAddress(),
+                profile.getPostalCode()
         );
     }
 

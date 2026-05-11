@@ -1,5 +1,6 @@
 package macieserafin.pl.helpdesk.model.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -9,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -37,12 +39,6 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(name = "first_name", length = 50)
-    private String firstName;
-
-    @Column(name = "last_name", length = 50)
-    private String lastName;
-
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
@@ -51,6 +47,9 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserProfile profile;
 
     @OneToMany(mappedBy = "createdBy", fetch = FetchType.LAZY)
     private List<Ticket> createdTickets = new ArrayList<>();
@@ -143,20 +142,21 @@ public class User {
         return passwordHash;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public UserProfile getProfile() {
+        return profile;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
+    public void setProfile(UserProfile profile) {
+        if (profile == null) {
+            if (this.profile != null) {
+                this.profile.setUser(null);
+            }
+            this.profile = null;
+            return;
+        }
 
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+        profile.setUser(this);
+        this.profile = profile;
     }
 
     public boolean isEnabled() {

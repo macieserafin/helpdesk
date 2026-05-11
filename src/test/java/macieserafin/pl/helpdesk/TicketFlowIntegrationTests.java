@@ -30,6 +30,33 @@ class TicketFlowIntegrationTests {
     private ObjectMapper objectMapper;
 
     @Test
+    void shouldExposeTechnicalUserWithProfileData() throws Exception {
+        String usersBody = mockMvc.perform(get("/api/admin/users")
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode user = findUser(usersBody, "user");
+        assertThat(user.get("email").asText()).isEqualTo("user@example.com");
+        assertThat(user.get("enabled").asBoolean()).isTrue();
+        assertThat(user.get("roles").get(0).asText()).isEqualTo("USER");
+        assertThat(user.has("passwordHash")).isFalse();
+
+        JsonNode profile = user.get("profile");
+        assertThat(profile.get("firstName").asText()).isEqualTo("Jan");
+        assertThat(profile.get("lastName").asText()).isEqualTo("Kowalski");
+        assertThat(profile.get("phoneNumber").asText()).isEqualTo("+48 500 100 100");
+//        assertThat(profile.has("department")).isFalse();
+//        assertThat(profile.has("position")).isFalse();
+//        assertThat(profile.has("placeOfResidence")).isFalse();
+        assertThat(profile.get("city").asText()).isEqualTo("Warszawa");
+        assertThat(profile.get("streetAddress").asText()).isEqualTo("Marszalkowska 10");
+        assertThat(profile.get("postalCode").asText()).isEqualTo("00-001");
+    }
+
+    @Test
     void shouldHandleMainTicketFlow() throws Exception {
         String ticketTitle = "Flow ticket " + UUID.randomUUID();
 
@@ -150,6 +177,16 @@ class TicketFlowIntegrationTests {
         }
 
         return false;
+    }
+
+    private JsonNode findUser(String responseBody, String username) throws Exception {
+        for (JsonNode user : objectMapper.readTree(responseBody)) {
+            if (user.get("username").asText().equals(username)) {
+                return user;
+            }
+        }
+
+        throw new AssertionError("User not found in response: " + username);
     }
 
     private String actionTypes(String responseBody) throws Exception {

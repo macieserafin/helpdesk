@@ -1,5 +1,6 @@
 package macieserafin.pl.helpdesk.config;
 
+import macieserafin.pl.helpdesk.model.entity.UserProfile;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
 import macieserafin.pl.helpdesk.service.TicketService;
@@ -16,9 +17,27 @@ public class SeedConfig {
     @Order(1)
     CommandLineRunner seedUsers(UserService userService) {
         return args -> {
-            userService.createUserIfMissing("user", "user@example.com", "user123", "USER");
-            userService.createUserIfMissing("agent", "agent@example.com", "agent123", "AGENT");
-            userService.createUserIfMissing("admin", "admin@example.com", "admin123", "ADMIN");
+            userService.createUserIfMissing(
+                    "user",
+                    "user@example.com",
+                    "user123",
+                    "USER",
+                    new UserProfile("Jan", "Kowalski", "+48 500 100 100", "Warszawa", "Marszalkowska 10", "00-001")
+            );
+            userService.createUserIfMissing(
+                    "agent",
+                    "agent@example.com",
+                    "agent123",
+                    "AGENT",
+                    new UserProfile("Anna", "Nowak", "+48 500 200 200", "Krakow", "Dluga 5", "31-147")
+            );
+            userService.createUserIfMissing(
+                    "admin",
+                    "admin@example.com",
+                    "admin123",
+                    "ADMIN",
+                    new UserProfile("Piotr", "Zielinski", "+48 500 300 300", "Gdansk", "Grunwaldzka 20", "80-236")
+            );
         };
     }
 
