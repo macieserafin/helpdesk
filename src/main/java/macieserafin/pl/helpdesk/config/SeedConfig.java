@@ -56,10 +56,10 @@ public class SeedConfig {
 
             ticketService.createTicketIfMissing(
                     "Brak dostepu do raportow",
-                    "Agent nie widzi zakladki z raportami mimo przypisanej roli.",
+                    "Nie widze zakladki z raportami mimo aktywnego konta.",
                     TicketStatus.IN_PROGRESS,
                     TicketPriority.MEDIUM,
-                    "agent",
+                    "user",
                     "Uprawnienia"
             );
 
@@ -68,7 +68,7 @@ public class SeedConfig {
                     "Podczas dodawania zalacznika formularz zwraca blad serwera.",
                     TicketStatus.OPEN,
                     TicketPriority.CRITICAL,
-                    "admin",
+                    "user",
                     "Zalaczniki"
             );
         };

@@ -286,6 +286,17 @@ class TicketFlowIntegrationTests {
                 .andExpect(jsonPath("$.author").value("user"));
 
         mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "To nie powinno byc wewnetrzne.",
+                                  "internal": true
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
                         .with(httpBasic("agent", "agent123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -338,6 +349,74 @@ class TicketFlowIntegrationTests {
                 "TICKET_RESOLVED",
                 "TICKET_CLOSED"
         );
+    }
+
+    @Test
+    void shouldRestrictTicketOwnershipToUsers() throws Exception {
+        String ticketJson = """
+                {
+                  "title": "Role restricted ticket %s",
+                  "description": "Ticket powinien nalezec tylko do klienta.",
+                  "priority": "MEDIUM",
+                  "category": "Role"
+                }
+                """;
+
+        mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ticketJson.formatted(UUID.randomUUID())))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ticketJson.formatted(UUID.randomUUID())))
+                .andExpect(status().isForbidden());
+
+        String createdTicketBody = mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ticketJson.formatted(UUID.randomUUID())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.createdBy").value("user"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long ticketId = objectMapper.readTree(createdTicketBody).get("id").asLong();
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignedTo").value("agent"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", ticketId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RESOLVED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESOLVED"));
+
+        mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Notatka administracyjna.",
+                                  "internal": true
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.author").value("admin"));
     }
 
     private boolean containsTicketId(String responseBody, Long ticketId) throws Exception {

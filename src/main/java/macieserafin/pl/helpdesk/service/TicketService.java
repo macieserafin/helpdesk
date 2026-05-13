@@ -57,6 +57,8 @@ public class TicketService {
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, String username) {
         User createdBy = findUser(username);
+        checkCanCreateTicket(createdBy);
+
         Category category = categoryRepository.findByName(requireText(request.getCategory(), "Category is required"))
                 .orElseGet(() -> categoryRepository.save(new Category(request.getCategory().trim())));
         TicketPriority priority = request.getPriority() == null ? TicketPriority.MEDIUM : request.getPriority();
@@ -99,7 +101,7 @@ public class TicketService {
     @Transactional
     public TicketResponse assignTicket(Long id, String username) {
         User agent = findUser(username);
-        checkHasAnyRole(agent, "AGENT", "ADMIN");
+        checkCanTakeTicket(agent);
 
         Ticket ticket = findTicket(id);
         User oldAssignedTo = ticket.getAssignedTo();
@@ -147,11 +149,7 @@ public class TicketService {
     public CommentResponse addComment(Long ticketId, CreateCommentRequest request, String username) {
         User author = findUser(username);
         Ticket ticket = findTicket(ticketId);
-        checkCanViewTicket(author, ticket);
-
-        if (request.isInternal() && !hasAnyRole(author, "AGENT", "ADMIN")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only agents and admins can add internal comments");
-        }
+        checkCanAddComment(author, ticket, request.isInternal());
 
         Comment comment = new Comment(
                 ticket,
@@ -250,6 +248,7 @@ public class TicketService {
         if (!ticketRepository.existsByTitle(title)) {
             var createdBy = userRepository.findByUsername(createdByUsername)
                     .orElseThrow(() -> new IllegalArgumentException("User not found: " + createdByUsername));
+            checkCanCreateTicket(createdBy);
 
             Category category = categoryRepository.findByName(categoryName)
                     .orElseGet(() -> categoryRepository.save(new Category(categoryName)));
@@ -279,6 +278,26 @@ public class TicketService {
         }
 
         checkHasAnyRole(actor, "AGENT", "ADMIN");
+    }
+
+    private void checkCanCreateTicket(User user) {
+        if (isCustomer(user)) {
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only users can create tickets");
+    }
+
+    private void checkCanTakeTicket(User user) {
+        checkHasAnyRole(user, "AGENT");
+    }
+
+    private void checkCanAddComment(User author, Ticket ticket, boolean internal) {
+        checkCanViewTicket(author, ticket);
+
+        if (internal && !isStaff(author)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only agents and admins can add internal comments");
+        }
     }
 
     private TicketHistoryActionType actionForStatus(TicketStatus status) {
@@ -345,6 +364,14 @@ public class TicketService {
         return user.getRoles()
                 .stream()
                 .anyMatch(userRole -> userRole.getName().equals(role));
+    }
+
+    private boolean isCustomer(User user) {
+        return hasRole(user, "USER") && !isStaff(user);
+    }
+
+    private boolean isStaff(User user) {
+        return hasAnyRole(user, "AGENT", "ADMIN");
     }
 
     private boolean isTicketOwner(User user, Ticket ticket) {
