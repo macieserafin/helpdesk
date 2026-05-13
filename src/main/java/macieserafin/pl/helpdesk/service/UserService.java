@@ -1,6 +1,7 @@
 package macieserafin.pl.helpdesk.service;
 
 import macieserafin.pl.helpdesk.dto.CreateUserRequest;
+import macieserafin.pl.helpdesk.dto.RegisterUserRequest;
 import macieserafin.pl.helpdesk.dto.UpdateUserEnabledRequest;
 import macieserafin.pl.helpdesk.dto.UpdateUserRequest;
 import macieserafin.pl.helpdesk.dto.UserProfileRequest;
@@ -80,6 +81,23 @@ public class UserService {
         user.setProfile(mapToUserProfile(request.getProfile()));
 
         return mapToUserResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserResponse registerUser(RegisterUserRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
+
+        CreateUserRequest createUserRequest = new CreateUserRequest();
+        createUserRequest.setUsername(request.getUsername());
+        createUserRequest.setEmail(request.getEmail());
+        createUserRequest.setPassword(request.getPassword());
+        createUserRequest.setEnabled(true);
+        createUserRequest.setRoles(List.of("USER"));
+        createUserRequest.setProfile(request.getProfile());
+
+        return createUser(createUserRequest);
     }
 
     @Transactional

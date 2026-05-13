@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -28,6 +30,82 @@ class TicketFlowIntegrationTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Test
+    void shouldLoginWithFormEndpointAndUseSession() throws Exception {
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", "user")
+                        .param("password", "user123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("user"))
+                .andExpect(jsonPath("$.email").value("user@example.com"))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        mockMvc.perform(get("/api/users/me")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("user"));
+    }
+
+    @Test
+    void shouldRejectInvalidFormLogin() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", "user")
+                        .param("password", "wrong-password"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+    }
+
+    @Test
+    void shouldRegisterUserAndLoginWithFormEndpoint() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String username = "registered-" + suffix;
+        String email = username + "@example.com";
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "email": "%s",
+                                  "password": "registered123",
+                                  "profile": {
+                                    "firstName": "Registered",
+                                    "lastName": "User",
+                                    "city": "Lodz"
+                                  }
+                                }
+                                """.formatted(username, email)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.roles[0]").value("USER"))
+                .andExpect(jsonPath("$.profile.firstName").value("Registered"))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", username)
+                        .param("password", "registered123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(username))
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        mockMvc.perform(get("/api/users/me")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email));
+    }
 
     @Test
     void shouldExposeTechnicalUserWithProfileData() throws Exception {
