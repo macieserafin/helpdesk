@@ -1,0 +1,138 @@
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 26px;
+  background:
+    linear-gradient(rgba(246, 248, 251, 0.88), rgba(246, 248, 251, 0.88)),
+    url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=80') center / cover;
+}
+
+.auth-card {
+  display: grid;
+  width: min(920px, 100%);
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 28px;
+  border: 1px solid rgba(217, 225, 234, 0.9);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-soft);
+  padding: 34px;
+}
+
+.auth-copy h1 {
+  margin: 0 0 12px;
+  font-size: clamp(2.1rem, 4vw, 4rem);
+  line-height: 1;
+}
+
+.auth-copy p {
+  color: var(--color-muted);
+  font-size: 1.05rem;
+}
+
+.login-form {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+}
+
+.split-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.details-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.details-list div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.details-list dt {
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.details-list dd {
+  margin: 0;
+}
+
+.ticket-description {
+  margin: 0;
+  border-left: 3px solid var(--color-primary);
+  background: #f4f8fb;
+  padding: 14px;
+}
+
+.comment-list,
+.timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.comment {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.comment-internal {
+  border-color: #e6c36a;
+  background: #fff8e6;
+}
+
+.comment div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.comment span,
+.timeline small {
+  color: var(--color-muted);
+}
+
+.comment p {
+  margin: 10px 0 0;
+}
+
+.comment-form {
+  display: grid;
+  gap: 12px;
+}
+
+.timeline-item {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  border-left: 3px solid #9ab4c3;
+  padding-left: 14px;
+}
+
+.timeline-item p {
+  margin: 0;
+}
+
+@media (max-width: 1050px) {
+  .split-view,
+  .details-grid,
+  .auth-card {
+    grid-template-columns: 1fr;
+  }
+}
