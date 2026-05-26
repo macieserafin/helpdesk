@@ -54,6 +54,17 @@ public class TicketService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getAgentTickets(String username) {
+        User agent = findUser(username);
+        checkHasAnyRole(agent, "AGENT", "ADMIN");
+
+        return ticketRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::mapToTicketResponse)
+                .toList();
+    }
+
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, String username) {
         User createdBy = findUser(username);

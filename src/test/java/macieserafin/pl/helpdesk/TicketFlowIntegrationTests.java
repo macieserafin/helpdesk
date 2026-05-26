@@ -352,6 +352,17 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldExposeTicketQueueToAgentsOnly() throws Exception {
+        mockMvc.perform(get("/api/agent/tickets")
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/agent/tickets")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void shouldRestrictTicketOwnershipToUsers() throws Exception {
         String ticketJson = """
                 {

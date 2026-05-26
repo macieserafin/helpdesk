@@ -35,6 +35,12 @@ public class TicketController {
         return ticketService.getTickets();
     }
 
+    //pobieranie kolejki zgloszen przez agenta
+    @GetMapping("/api/agent/tickets")
+    public List<TicketResponse> getAgentTickets(Principal principal) {
+        return ticketService.getAgentTickets(principal.getName());
+    }
+
     //utworzenie nowego zgloszenia
     @PostMapping("/api/tickets")
     @ResponseStatus(HttpStatus.CREATED)
