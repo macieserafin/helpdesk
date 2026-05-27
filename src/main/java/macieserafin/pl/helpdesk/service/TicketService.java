@@ -197,7 +197,15 @@ public class TicketService {
         );
 
         Comment savedComment = commentRepository.save(comment);
-        saveHistory(ticket, author, TicketHistoryActionType.COMMENT_ADDED, null, null,
+        TicketStatus oldStatus = ticket.getStatus();
+        TicketStatus newStatus = statusAfterComment(ticket, author, request.isInternal());
+        if (newStatus != null && oldStatus != newStatus) {
+            ticket.setStatus(newStatus);
+        }
+
+        saveHistory(ticket, author, TicketHistoryActionType.COMMENT_ADDED,
+                oldStatus == newStatus ? null : oldStatus,
+                oldStatus == newStatus ? null : newStatus,
                 null, null, null, null, "Comment added");
 
         return mapToCommentResponse(savedComment);
@@ -350,6 +358,26 @@ public class TicketService {
             return TicketHistoryActionType.TICKET_CLOSED;
         }
         return TicketHistoryActionType.STATUS_CHANGED;
+    }
+
+    private TicketStatus statusAfterComment(Ticket ticket, User author, boolean internal) {
+        if (internal || isTerminalStatus(ticket.getStatus())) {
+            return ticket.getStatus();
+        }
+        if (isStaff(author)) {
+            return TicketStatus.WAITING_FOR_USER;
+        }
+        if (isTicketOwner(author, ticket) && ticket.getStatus() == TicketStatus.WAITING_FOR_USER) {
+            return TicketStatus.IN_PROGRESS;
+        }
+
+        return ticket.getStatus();
+    }
+
+    private boolean isTerminalStatus(TicketStatus status) {
+        return status == TicketStatus.CLOSED
+                || status == TicketStatus.REJECTED
+                || status == TicketStatus.CANCELLED;
     }
 
     private void saveHistory(Ticket ticket, User changedBy, TicketHistoryActionType actionType,

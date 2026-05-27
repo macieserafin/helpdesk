@@ -49,7 +49,7 @@ public class SeedConfig {
                     "Problem z logowaniem",
                     "Nie moge sie zalogowac naprawcie gnoje.",
                     TicketStatus.OPEN,
-                    TicketPriority.HIGH,
+                    TicketPriority.UNASSIGNED,
                     "user",
                     "Konto"
             );
@@ -57,8 +57,8 @@ public class SeedConfig {
             ticketService.createTicketIfMissing(
                     "Brak dostepu do raportow",
                     "Nie widze zakladki z raportami mimo aktywnego konta.",
-                    TicketStatus.IN_PROGRESS,
-                    TicketPriority.MEDIUM,
+                    TicketStatus.OPEN,
+                    TicketPriority.UNASSIGNED,
                     "user",
                     "Uprawnienia"
             );
@@ -67,7 +67,7 @@ public class SeedConfig {
                     "Nie dziala zalacznik",
                     "Podczas dodawania zalacznika formularz zwraca blad serwera.",
                     TicketStatus.OPEN,
-                    TicketPriority.CRITICAL,
+                    TicketPriority.UNASSIGNED,
                     "user",
                     "Zalaczniki"
             );

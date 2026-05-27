@@ -301,18 +301,6 @@ class TicketFlowIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "content": "Dalej nie moge sie zalogowac.",
-                                  "internal": false
-                                }
-                                """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.author").value("user"));
-
-        mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
-                        .with(httpBasic("user", "user123"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
                                   "content": "To nie powinno byc wewnetrzne.",
                                   "internal": true
                                 }
@@ -330,6 +318,28 @@ class TicketFlowIntegrationTests {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.author").value("agent"));
+
+        mockMvc.perform(get("/api/tickets/{id}", ticketId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WAITING_FOR_USER"));
+
+        mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Dalej nie moge sie zalogowac.",
+                                  "internal": false
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.author").value("user"));
+
+        mockMvc.perform(get("/api/tickets/{id}", ticketId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
         mockMvc.perform(get("/api/tickets/{id}/comments", ticketId)
                         .with(httpBasic("user", "user123")))
