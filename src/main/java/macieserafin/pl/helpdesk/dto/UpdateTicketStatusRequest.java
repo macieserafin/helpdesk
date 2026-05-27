@@ -1,8 +1,10 @@
 package macieserafin.pl.helpdesk.dto;
 
+import jakarta.validation.constraints.NotNull;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
 
 public class UpdateTicketStatusRequest {
+    @NotNull(message = "Status is required")
     private TicketStatus status;
 
     public UpdateTicketStatusRequest() {

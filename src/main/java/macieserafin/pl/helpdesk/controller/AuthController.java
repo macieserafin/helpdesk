@@ -1,5 +1,6 @@
 package macieserafin.pl.helpdesk.controller;
 
+import jakarta.validation.Valid;
 import macieserafin.pl.helpdesk.dto.RegisterUserRequest;
 import macieserafin.pl.helpdesk.dto.UserResponse;
 import macieserafin.pl.helpdesk.service.UserService;
@@ -19,7 +20,7 @@ public class AuthController {
 
     @PostMapping("/api/auth/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse register(@RequestBody RegisterUserRequest request) {
+    public UserResponse register(@Valid @RequestBody RegisterUserRequest request) {
         return userService.registerUser(request);
     }
 }

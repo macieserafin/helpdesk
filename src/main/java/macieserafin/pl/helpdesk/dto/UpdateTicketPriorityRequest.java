@@ -1,8 +1,10 @@
 package macieserafin.pl.helpdesk.dto;
 
+import jakarta.validation.constraints.NotNull;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 
 public class UpdateTicketPriorityRequest {
+    @NotNull(message = "Priority is required")
     private TicketPriority priority;
 
     public UpdateTicketPriorityRequest() {

@@ -1,5 +1,6 @@
 package macieserafin.pl.helpdesk.controller;
 
+import jakarta.validation.Valid;
 import macieserafin.pl.helpdesk.dto.CreateUserRequest;
 import macieserafin.pl.helpdesk.dto.UpdateUserEnabledRequest;
 import macieserafin.pl.helpdesk.dto.UpdateUserRequest;
@@ -36,7 +37,7 @@ public class UserController {
 
     //aktualizuje profil zalogowanego usera
     @PatchMapping("/api/users/me/profile")
-    public UserResponse updateCurrentUserProfile(@RequestBody UserProfileRequest request, Principal principal) {
+    public UserResponse updateCurrentUserProfile(@Valid @RequestBody UserProfileRequest request, Principal principal) {
         return userService.updateCurrentUserProfile(principal.getName(), request);
     }
 
@@ -55,19 +56,19 @@ public class UserController {
     //tworzy nowego usera
     @PostMapping("/api/admin/users")
     @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse createUser(@RequestBody CreateUserRequest request) {
+    public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
         return userService.createUser(request);
     }
 
     //aktualizuje dane usera po ID
     @PatchMapping("/api/admin/users/{id}")
-    public UserResponse updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
+    public UserResponse updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return userService.updateUser(id, request);
     }
 
     //wlacza lub wylacza konto usera
     @PatchMapping("/api/admin/users/{id}/enabled")
-    public UserResponse updateEnabled(@PathVariable Long id, @RequestBody UpdateUserEnabledRequest request) {
+    public UserResponse updateEnabled(@PathVariable Long id, @Valid @RequestBody UpdateUserEnabledRequest request) {
         return userService.updateEnabled(id, request);
     }
 }

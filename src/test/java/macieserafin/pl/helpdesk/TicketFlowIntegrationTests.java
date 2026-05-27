@@ -108,6 +108,42 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldRejectInvalidRequestBodies() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "ab",
+                                  "email": "invalid-email",
+                                  "password": "123"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": " ",
+                                  "description": "",
+                                  "category": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(patch("/api/admin/users/1/enabled")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": null
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void shouldExposeTechnicalUserWithProfileData() throws Exception {
         String usersBody = mockMvc.perform(get("/api/admin/users")
                         .with(httpBasic("admin", "admin123")))

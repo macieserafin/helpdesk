@@ -1,5 +1,6 @@
 package macieserafin.pl.helpdesk.controller;
 
+import jakarta.validation.Valid;
 import macieserafin.pl.helpdesk.dto.CommentResponse;
 import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
@@ -45,7 +46,7 @@ public class TicketController {
     //utworzenie nowego zgloszenia
     @PostMapping("/api/tickets")
     @ResponseStatus(HttpStatus.CREATED)
-    public TicketResponse createTicket(@RequestBody CreateTicketRequest request, Principal principal) {
+    public TicketResponse createTicket(@Valid @RequestBody CreateTicketRequest request, Principal principal) {
         return ticketService.createTicket(request, principal.getName());
     }
 
@@ -70,7 +71,7 @@ public class TicketController {
     //ustawienie priorytetu zgloszenia przez agenta
     @PatchMapping("/api/agent/tickets/{id}/priority")
     public TicketResponse updateTicketPriority(@PathVariable Long id,
-                                               @RequestBody UpdateTicketPriorityRequest request,
+                                               @Valid @RequestBody UpdateTicketPriorityRequest request,
                                                Principal principal) {
         return ticketService.updatePriority(id, request, principal.getName());
     }
@@ -78,7 +79,7 @@ public class TicketController {
     //zmiana statusu zgloszenia przez agenta
     @PatchMapping("/api/agent/tickets/{id}/status")
     public TicketResponse updateTicketStatus(@PathVariable Long id,
-                                             @RequestBody UpdateTicketStatusRequest request,
+                                             @Valid @RequestBody UpdateTicketStatusRequest request,
                                              Principal principal) {
         return ticketService.updateStatus(id, request.getStatus(), principal.getName());
     }
@@ -87,7 +88,7 @@ public class TicketController {
     @PostMapping("/api/tickets/{id}/comments")
     @ResponseStatus(HttpStatus.CREATED)
     public CommentResponse addComment(@PathVariable Long id,
-                                      @RequestBody CreateCommentRequest request,
+                                      @Valid @RequestBody CreateCommentRequest request,
                                       Principal principal) {
         return ticketService.addComment(id, request, principal.getName());
     }

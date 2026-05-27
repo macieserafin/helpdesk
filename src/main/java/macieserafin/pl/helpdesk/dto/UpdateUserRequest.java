@@ -1,13 +1,30 @@
 package macieserafin.pl.helpdesk.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 public class UpdateUserRequest {
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "Username can contain only letters, numbers, dots, underscores and hyphens")
     private String username;
+
+    @Email(message = "Email must be valid")
+    @Size(max = 255, message = "Email must not exceed 255 characters")
+    @Pattern(regexp = "^.*\\S.*$", message = "Email is required")
     private String email;
+
+    @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
     private String password;
+
     private Boolean enabled;
-    private List<String> roles;
+
+    private List<@Pattern(regexp = "^.*\\S.*$", message = "Role name is required") @Size(max = 50, message = "Role name must not exceed 50 characters") String> roles;
+
+    @Valid
     private UserProfileRequest profile;
 
     public UpdateUserRequest() {
