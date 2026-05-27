@@ -246,6 +246,7 @@ class TicketFlowIntegrationTests {
                         .content(createTicketJson))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.priority").value("UNASSIGNED"))
                 .andExpect(jsonPath("$.createdBy").value("user"))
                 .andReturn()
                 .getResponse()
@@ -265,13 +266,35 @@ class TicketFlowIntegrationTests {
                         .with(httpBasic("user", "user123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ticketId))
-                .andExpect(jsonPath("$.status").value("OPEN"));
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.priority").value("UNASSIGNED"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/priority", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "CRITICAL"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
                         .with(httpBasic("agent", "agent123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assignedTo").value("agent"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/priority", ticketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priority").value("HIGH"));
 
         mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
                         .with(httpBasic("user", "user123"))
@@ -345,6 +368,7 @@ class TicketFlowIntegrationTests {
         assertThat(actionTypes(historyBody)).contains(
                 "TICKET_CREATED",
                 "ASSIGNED_CHANGED",
+                "PRIORITY_CHANGED",
                 "COMMENT_ADDED",
                 "TICKET_RESOLVED",
                 "TICKET_CLOSED"
@@ -391,6 +415,7 @@ class TicketFlowIntegrationTests {
                         .content(ticketJson.formatted(UUID.randomUUID())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.createdBy").value("user"))
+                .andExpect(jsonPath("$.priority").value("UNASSIGNED"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

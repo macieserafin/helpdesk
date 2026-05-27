@@ -5,6 +5,7 @@ import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
 import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
+import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.dto.UpdateTicketStatusRequest;
 import macieserafin.pl.helpdesk.service.TicketService;
 import org.springframework.http.HttpStatus;
@@ -64,6 +65,14 @@ public class TicketController {
     @PatchMapping("/api/agent/tickets/{id}/assign")
     public TicketResponse assignTicket(@PathVariable Long id, Principal principal) {
         return ticketService.assignTicket(id, principal.getName());
+    }
+
+    //ustawienie priorytetu zgloszenia przez agenta
+    @PatchMapping("/api/agent/tickets/{id}/priority")
+    public TicketResponse updateTicketPriority(@PathVariable Long id,
+                                               @RequestBody UpdateTicketPriorityRequest request,
+                                               Principal principal) {
+        return ticketService.updatePriority(id, request, principal.getName());
     }
 
     //zmiana statusu zgloszenia przez agenta

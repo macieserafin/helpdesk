@@ -1,20 +1,16 @@
 package macieserafin.pl.helpdesk.dto;
 
-import macieserafin.pl.helpdesk.model.enums.TicketPriority;
-
 public class CreateTicketRequest {
     private String title;
     private String description;
-    private TicketPriority priority;
     private String category;
 
     public CreateTicketRequest() {
     }
 
-    public CreateTicketRequest(String title, String description, TicketPriority priority, String category) {
+    public CreateTicketRequest(String title, String description, String category) {
         this.title = title;
         this.description = description;
-        this.priority = priority;
         this.category = category;
     }
 
@@ -32,14 +28,6 @@ public class CreateTicketRequest {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public TicketPriority getPriority() {
-        return priority;
-    }
-
-    public void setPriority(TicketPriority priority) {
-        this.priority = priority;
     }
 
     public String getCategory() {

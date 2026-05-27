@@ -4,6 +4,7 @@ import macieserafin.pl.helpdesk.dto.CommentResponse;
 import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
 import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
+import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
 import macieserafin.pl.helpdesk.model.entity.Comment;
 import macieserafin.pl.helpdesk.model.entity.Category;
@@ -72,13 +73,12 @@ public class TicketService {
 
         Category category = categoryRepository.findByName(requireText(request.getCategory(), "Category is required"))
                 .orElseGet(() -> categoryRepository.save(new Category(request.getCategory().trim())));
-        TicketPriority priority = request.getPriority() == null ? TicketPriority.MEDIUM : request.getPriority();
 
         Ticket ticket = new Ticket(
                 requireText(request.getTitle(), "Title is required"),
                 requireText(request.getDescription(), "Description is required"),
                 TicketStatus.OPEN,
-                priority,
+                TicketPriority.UNASSIGNED,
                 createdBy,
                 category
         );
@@ -105,6 +105,33 @@ public class TicketService {
         User user = findUser(username);
         Ticket ticket = findTicket(id);
         checkCanViewTicket(user, ticket);
+
+        return mapToTicketResponse(ticket);
+    }
+
+    @Transactional
+    public TicketResponse updatePriority(Long id, UpdateTicketPriorityRequest request, String username) {
+        if (request.getPriority() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Priority is required");
+        }
+        if (request.getPriority() == TicketPriority.UNASSIGNED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Priority must be assigned");
+        }
+
+        User agent = findUser(username);
+        checkCanAssignPriority(agent);
+
+        Ticket ticket = findTicket(id);
+        TicketPriority oldPriority = ticket.getPriority();
+        TicketPriority newPriority = request.getPriority();
+
+        if (oldPriority == newPriority) {
+            return mapToTicketResponse(ticket);
+        }
+
+        ticket.setPriority(newPriority);
+        saveHistory(ticket, agent, TicketHistoryActionType.PRIORITY_CHANGED, null, null,
+                oldPriority, newPriority, null, null, "Priority changed");
 
         return mapToTicketResponse(ticket);
     }
@@ -300,6 +327,10 @@ public class TicketService {
     }
 
     private void checkCanTakeTicket(User user) {
+        checkHasAnyRole(user, "AGENT");
+    }
+
+    private void checkCanAssignPriority(User user) {
         checkHasAnyRole(user, "AGENT");
     }
 
