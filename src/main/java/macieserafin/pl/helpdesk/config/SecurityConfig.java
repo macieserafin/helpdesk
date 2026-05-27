@@ -1,9 +1,11 @@
 package macieserafin.pl.helpdesk.config;
 
+import macieserafin.pl.helpdesk.dto.ApiErrorResponse;
 import macieserafin.pl.helpdesk.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,7 +19,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 public class SecurityConfig {
@@ -41,6 +42,17 @@ public class SecurityConfig {
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                writeErrorResponse(response, objectMapper,
+                                        ApiErrorResponse.of(HttpStatus.UNAUTHORIZED,
+                                                "Authentication is required",
+                                                request.getRequestURI())))
+                        .accessDeniedHandler((request, response, exception) ->
+                                writeErrorResponse(response, objectMapper,
+                                        ApiErrorResponse.of(HttpStatus.FORBIDDEN,
+                                                "Access denied",
+                                                request.getRequestURI()))))
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
                         .usernameParameter("username")
@@ -52,15 +64,23 @@ public class SecurityConfig {
                                     userService.findCurrentUser(authentication.getName()));
                         })
                         .failureHandler((request, response, exception) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            objectMapper.writeValue(response.getOutputStream(),
-                                    Map.of("message", "Invalid username or password"));
+                            writeErrorResponse(response, objectMapper,
+                                    ApiErrorResponse.of(HttpStatus.UNAUTHORIZED,
+                                            "Invalid username or password",
+                                            request.getRequestURI()));
                         })
                         .permitAll())
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();
+    }
+
+    private void writeErrorResponse(HttpServletResponse response,
+                                    ObjectMapper objectMapper,
+                                    ApiErrorResponse errorResponse) throws java.io.IOException {
+        response.setStatus(errorResponse.status());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getOutputStream(), errorResponse);
     }
 
     @Bean

@@ -59,7 +59,11 @@ class TicketFlowIntegrationTests {
                         .param("username", "user")
                         .param("password", "wrong-password"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").value("Invalid username or password"))
+                .andExpect(jsonPath("$.path").value("/api/auth/login"))
+                .andExpect(jsonPath("$.errors.length()").value(0));
     }
 
     @Test
@@ -118,7 +122,12 @@ class TicketFlowIntegrationTests {
                                   "password": "123"
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.path").value("/api/auth/register"))
+                .andExpect(jsonPath("$.errors.length()").value(3));
 
         mockMvc.perform(post("/api/tickets")
                         .with(httpBasic("user", "user123"))
@@ -130,7 +139,10 @@ class TicketFlowIntegrationTests {
                                   "category": ""
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors.length()").value(3));
 
         mockMvc.perform(patch("/api/admin/users/1/enabled")
                         .with(httpBasic("admin", "admin123"))
@@ -140,7 +152,36 @@ class TicketFlowIntegrationTests {
                                   "enabled": null
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors[0].field").value("enabled"));
+    }
+
+    @Test
+    void shouldUseCommonErrorFormatForApiErrors() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").value("Authentication is required"))
+                .andExpect(jsonPath("$.path").value("/api/users/me"));
+
+        mockMvc.perform(get("/api/admin/users")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/admin/users"));
+
+        mockMvc.perform(get("/api/admin/users/999999")
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("User not found: 999999"))
+                .andExpect(jsonPath("$.path").value("/api/admin/users/999999"));
     }
 
     @Test
