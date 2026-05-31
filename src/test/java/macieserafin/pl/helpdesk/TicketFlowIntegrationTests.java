@@ -367,6 +367,11 @@ class TicketFlowIntegrationTests {
                 .andExpect(jsonPath("$.assignedTo").value("agent"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Ticket is already assigned to this agent"));
+
         mockMvc.perform(patch("/api/agent/tickets/{id}/priority", ticketId)
                         .with(httpBasic("agent", "agent123"))
                         .contentType(MediaType.APPLICATION_JSON)

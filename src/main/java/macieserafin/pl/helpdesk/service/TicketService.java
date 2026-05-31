@@ -164,6 +164,10 @@ public class TicketService {
         User oldAssignedTo = ticket.getAssignedTo();
         TicketStatus oldStatus = ticket.getStatus();
 
+        if (oldAssignedTo != null && oldAssignedTo.getId().equals(agent.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is already assigned to this agent");
+        }
+
         ticket.setAssignedTo(agent);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
         saveHistory(ticket, agent, TicketHistoryActionType.ASSIGNED_CHANGED, oldStatus, TicketStatus.IN_PROGRESS,
