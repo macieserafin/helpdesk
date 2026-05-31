@@ -3,11 +3,12 @@ package macieserafin.pl.helpdesk.repository;
 import macieserafin.pl.helpdesk.model.entity.Ticket;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface TicketRepository extends JpaRepository<Ticket, Long> {
+public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecificationExecutor<Ticket> {
 
     boolean existsByTitle(String title);
 

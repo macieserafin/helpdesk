@@ -3,6 +3,7 @@ package macieserafin.pl.helpdesk.service;
 import macieserafin.pl.helpdesk.dto.CommentResponse;
 import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
+import macieserafin.pl.helpdesk.dto.TicketFilterRequest;
 import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
@@ -19,6 +20,9 @@ import macieserafin.pl.helpdesk.repository.CommentRepository;
 import macieserafin.pl.helpdesk.repository.TicketHistoryRepository;
 import macieserafin.pl.helpdesk.repository.TicketRepository;
 import macieserafin.pl.helpdesk.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,22 +52,18 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<TicketResponse> getTickets() {
-        return ticketRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(this::mapToTicketResponse)
-                .toList();
+    public Page<TicketResponse> getTickets(TicketFilterRequest filter, Pageable pageable) {
+        return ticketRepository.findAll(buildTicketSpecification(filter, null), pageable)
+                .map(this::mapToTicketResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<TicketResponse> getAgentTickets(String username) {
+    public Page<TicketResponse> getAgentTickets(String username, TicketFilterRequest filter, Pageable pageable) {
         User agent = findUser(username);
         checkHasAnyRole(agent, "AGENT", "ADMIN");
 
-        return ticketRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(this::mapToTicketResponse)
-                .toList();
+        return ticketRepository.findAll(buildTicketSpecification(filter, null), pageable)
+                .map(this::mapToTicketResponse);
     }
 
     @Transactional
@@ -71,8 +71,7 @@ public class TicketService {
         User createdBy = findUser(username);
         checkCanCreateTicket(createdBy);
 
-        Category category = categoryRepository.findByName(requireText(request.getCategory(), "Category is required"))
-                .orElseGet(() -> categoryRepository.save(new Category(request.getCategory().trim())));
+        Category category = findActiveCategory(request.getCategory());
 
         Ticket ticket = new Ticket(
                 requireText(request.getTitle(), "Title is required"),
@@ -91,13 +90,11 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<TicketResponse> getMyTickets(String username) {
+    public Page<TicketResponse> getMyTickets(String username, TicketFilterRequest filter, Pageable pageable) {
         User user = findUser(username);
 
-        return ticketRepository.findByCreatedByIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(this::mapToTicketResponse)
-                .toList();
+        return ticketRepository.findAll(buildTicketSpecification(filter, user.getId()), pageable)
+                .map(this::mapToTicketResponse);
     }
 
     @Transactional(readOnly = true)
@@ -296,8 +293,9 @@ public class TicketService {
                     .orElseThrow(() -> new IllegalArgumentException("User not found: " + createdByUsername));
             checkCanCreateTicket(createdBy);
 
-            Category category = categoryRepository.findByName(categoryName)
-                    .orElseGet(() -> categoryRepository.save(new Category(categoryName)));
+            Category category = categoryRepository.findByNameIgnoreCaseAndActiveTrue(
+                            requireText(categoryName, "Category is required"))
+                    .orElseThrow(() -> new IllegalArgumentException("Category not found or inactive: " + categoryName));
 
             Ticket ticket = new Ticket(
                     title,
@@ -406,6 +404,72 @@ public class TicketService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + username));
     }
 
+    private Specification<Ticket> buildTicketSpecification(TicketFilterRequest filter, Long createdById) {
+        validateDateRange(filter);
+
+        Specification<Ticket> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+
+        if (createdById != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("createdBy").get("id"), createdById));
+        }
+
+        if (filter == null) {
+            return specification;
+        }
+
+        if (filter.getStatus() != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), filter.getStatus()));
+        }
+
+        if (filter.getPriority() != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("priority"), filter.getPriority()));
+        }
+
+        if (hasText(filter.getCategory())) {
+            String category = filter.getCategory().trim().toLowerCase();
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("category").get("name")), category));
+        }
+
+        if (hasText(filter.getAgent())) {
+            String agent = filter.getAgent().trim().toLowerCase();
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("assignedTo").get("username")), agent));
+        }
+
+        if (filter.getCreatedFrom() != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), filter.getCreatedFrom()));
+        }
+
+        if (filter.getCreatedTo() != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), filter.getCreatedTo()));
+        }
+
+        return specification;
+    }
+
+    private void validateDateRange(TicketFilterRequest filter) {
+        if (filter != null
+                && filter.getCreatedFrom() != null
+                && filter.getCreatedTo() != null
+                && filter.getCreatedFrom().isAfter(filter.getCreatedTo())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "createdFrom must be before createdTo");
+        }
+    }
+
+    private Category findActiveCategory(String categoryName) {
+        String name = requireText(categoryName, "Category is required");
+
+        return categoryRepository.findByNameIgnoreCaseAndActiveTrue(name)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Category not found or inactive: " + name));
+    }
+
     private void checkCanViewTicket(User user, Ticket ticket) {
         if (isTicketOwner(user, ticket) || isAssignedAgent(user, ticket) || hasAnyRole(user, "AGENT", "ADMIN")) {
             return;
@@ -459,5 +523,9 @@ public class TicketService {
         }
 
         return value.trim();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

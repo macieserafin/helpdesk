@@ -11,10 +11,12 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -463,6 +465,159 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldManageTicketCategoriesAndRejectUnknownOrInactiveCategory() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String categoryName = "Test category " + suffix;
+        String updatedCategoryName = "Updated category " + suffix;
+
+        String createdCategoryBody = mockMvc.perform(post("/api/admin/categories")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s",
+                                  "description": "Kategoria dodana przez admina"
+                                }
+                                """.formatted(categoryName)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value(categoryName))
+                .andExpect(jsonPath("$.active").value(true))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long categoryId = objectMapper.readTree(createdCategoryBody).get("id").asLong();
+
+        mockMvc.perform(get("/api/categories")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/admin/categories/{id}", categoryId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s",
+                                  "description": "Zaktualizowany opis"
+                                }
+                                """.formatted(updatedCategoryName)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(updatedCategoryName))
+                .andExpect(jsonPath("$.description").value("Zaktualizowany opis"));
+
+        mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Unknown category %s",
+                                  "description": "Tego ticketa nie mozna utworzyc.",
+                                  "category": "Brak takiej kategorii %s"
+                                }
+                                """.formatted(suffix, suffix)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Category not found or inactive: Brak takiej kategorii " + suffix));
+
+        mockMvc.perform(delete("/api/admin/categories/{id}", categoryId)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/admin/categories/{id}", categoryId)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Inactive category %s",
+                                  "description": "Tego ticketa tez nie mozna utworzyc.",
+                                  "category": "%s"
+                                }
+                                """.formatted(suffix, updatedCategoryName)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Category not found or inactive: " + updatedCategoryName));
+    }
+
+    @Test
+    void shouldFilterAndPaginateTickets() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String categoryName = "Filter category " + suffix;
+        String ticketTitle = "Filtered ticket " + suffix;
+        String createdFrom = LocalDateTime.now().minusDays(1).withNano(0).toString();
+
+        mockMvc.perform(post("/api/admin/categories")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s"
+                                }
+                                """.formatted(categoryName)))
+                .andExpect(status().isCreated());
+
+        String createdTicketBody = mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "%s",
+                                  "description": "Ticket do testowania filtrow i paginacji.",
+                                  "category": "%s"
+                                }
+                                """.formatted(ticketTitle, categoryName)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long ticketId = objectMapper.readTree(createdTicketBody).get("id").asLong();
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/priority", ticketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/admin/tickets")
+                        .with(httpBasic("admin", "admin123"))
+                        .param("status", "IN_PROGRESS")
+                        .param("priority", "HIGH")
+                        .param("category", categoryName)
+                        .param("agent", "agent")
+                        .param("createdFrom", createdFrom)
+                        .param("page", "0")
+                        .param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(ticketId))
+                .andExpect(jsonPath("$.content[0].category").value(categoryName))
+                .andExpect(jsonPath("$.content[0].assignedTo").value("agent"))
+                .andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        mockMvc.perform(get("/api/tickets/me")
+                        .with(httpBasic("user", "user123"))
+                        .param("category", categoryName)
+                        .param("page", "0")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(ticketId))
+                .andExpect(jsonPath("$.size").value(1));
+    }
+
+    @Test
     void shouldExposeTicketQueueToAgentsOnly() throws Exception {
         mockMvc.perform(get("/api/agent/tickets")
                         .with(httpBasic("agent", "agent123")))
@@ -543,7 +698,10 @@ class TicketFlowIntegrationTests {
     }
 
     private boolean containsTicketId(String responseBody, Long ticketId) throws Exception {
-        for (JsonNode ticket : objectMapper.readTree(responseBody)) {
+        JsonNode root = objectMapper.readTree(responseBody);
+        JsonNode tickets = root.has("content") ? root.get("content") : root;
+
+        for (JsonNode ticket : tickets) {
             if (ticket.get("id").asLong() == ticketId) {
                 return true;
             }

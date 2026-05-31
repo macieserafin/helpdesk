@@ -3,6 +3,7 @@ package macieserafin.pl.helpdesk.config;
 import macieserafin.pl.helpdesk.model.entity.UserProfile;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
+import macieserafin.pl.helpdesk.service.CategoryService;
 import macieserafin.pl.helpdesk.service.TicketService;
 import macieserafin.pl.helpdesk.service.UserService;
 import org.springframework.boot.CommandLineRunner;
@@ -43,6 +44,19 @@ public class SeedConfig {
 
     @Bean
     @Order(2)
+    CommandLineRunner seedCategories(CategoryService categoryService) {
+        return args -> {
+            categoryService.createCategoryIfMissing("Konto", "Problemy z logowaniem, kontem i danymi uzytkownika.");
+            categoryService.createCategoryIfMissing("Uprawnienia", "Dostepy, role i widocznosc funkcji w systemie.");
+            categoryService.createCategoryIfMissing("Role", "Problemy zwiazane z rolami uzytkownikow.");
+            categoryService.createCategoryIfMissing("Zalaczniki", "Dodawanie, pobieranie i obsluga plikow.");
+            categoryService.createCategoryIfMissing("Aplikacja", "Bledy aplikacji i nieprawidlowe dzialanie panelu.");
+            categoryService.createCategoryIfMissing("Inne", "Zgloszenia, ktore nie pasuja do pozostalych kategorii.");
+        };
+    }
+
+    @Bean
+    @Order(3)
     CommandLineRunner seedTicket(TicketService ticketService) {
         return args -> {
             ticketService.createTicketIfMissing(

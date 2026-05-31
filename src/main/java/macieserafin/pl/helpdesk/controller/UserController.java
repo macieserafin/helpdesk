@@ -21,7 +21,7 @@ import java.security.Principal;
 import java.util.List;
 
 @RestController
-@RequestMapping
+@RequestMapping("/api")
 public class UserController {
     private final UserService userService;
 
@@ -30,44 +30,44 @@ public class UserController {
     }
 
     //zwraca zalogowanego usera
-    @GetMapping("/api/users/me")
+    @GetMapping("/users/me")
     public UserResponse getCurrentUser(Principal principal) {
         return userService.findCurrentUser(principal.getName());
     }
 
     //aktualizuje profil zalogowanego usera
-    @PatchMapping("/api/users/me/profile")
+    @PatchMapping("/users/me/profile")
     public UserResponse updateCurrentUserProfile(@Valid @RequestBody UserProfileRequest request, Principal principal) {
         return userService.updateCurrentUserProfile(principal.getName(), request);
     }
 
     //zwraca liste wszsytkich userow
-    @GetMapping("/api/admin/users")
+    @GetMapping("/admin/users")
     public List<UserResponse> getUsers() {
         return userService.findAllUsers();
     }
 
     //zwraca dane usera po id
-    @GetMapping("/api/admin/users/{id}")
+    @GetMapping("/admin/users/{id}")
     public UserResponse getUser(@PathVariable Long id) {
         return userService.findUserById(id);
     }
 
     //tworzy nowego usera
-    @PostMapping("/api/admin/users")
+    @PostMapping("/admin/users")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
         return userService.createUser(request);
     }
 
     //aktualizuje dane usera po ID
-    @PatchMapping("/api/admin/users/{id}")
+    @PatchMapping("/admin/users/{id}")
     public UserResponse updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return userService.updateUser(id, request);
     }
 
     //wlacza lub wylacza konto usera
-    @PatchMapping("/api/admin/users/{id}/enabled")
+    @PatchMapping("/admin/users/{id}/enabled")
     public UserResponse updateEnabled(@PathVariable Long id, @Valid @RequestBody UpdateUserEnabledRequest request) {
         return userService.updateEnabled(id, request);
     }

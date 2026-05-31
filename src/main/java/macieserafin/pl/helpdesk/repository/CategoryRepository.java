@@ -10,7 +10,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     Optional<Category> findByName(String name);
 
-    List<Category> findByActiveTrue();
+    Optional<Category> findByNameIgnoreCase(String name);
 
-    boolean existsByName(String name);
+    Optional<Category> findByNameIgnoreCaseAndActiveTrue(String name);
+
+    List<Category> findAllByOrderByNameAsc();
+
+    List<Category> findByActiveTrueOrderByNameAsc();
 }
