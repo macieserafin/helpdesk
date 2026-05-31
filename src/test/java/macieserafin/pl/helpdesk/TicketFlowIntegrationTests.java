@@ -5,12 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,12 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.attachments.storage-dir=target/test-attachments")
 @AutoConfigureMockMvc
 class TicketFlowIntegrationTests {
 
@@ -462,6 +465,121 @@ class TicketFlowIntegrationTests {
                 "TICKET_RESOLVED",
                 "TICKET_CLOSED"
         );
+    }
+
+    @Test
+    void shouldHandleTicketAttachments() throws Exception {
+        String suffix = UUID.randomUUID().toString();
+        String createdTicketBody = mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Attachment ticket %s",
+                                  "description": "Ticket do testowania zalacznikow.",
+                                  "category": "Konto"
+                                }
+                                """.formatted(suffix)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long ticketId = objectMapper.readTree(createdTicketBody).get("id").asLong();
+        MockMultipartFile userFile = new MockMultipartFile(
+                "file",
+                "readme.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "hello attachment".getBytes(StandardCharsets.UTF_8)
+        );
+
+        String attachmentBody = mockMvc.perform(multipart("/api/tickets/{id}/attachments", ticketId)
+                        .file(userFile)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ticketId").value(ticketId))
+                .andExpect(jsonPath("$.commentId").doesNotExist())
+                .andExpect(jsonPath("$.uploadedBy").value("user"))
+                .andExpect(jsonPath("$.fileName").value("readme.txt"))
+                .andExpect(jsonPath("$.contentType").value(MediaType.TEXT_PLAIN_VALUE))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long attachmentId = objectMapper.readTree(attachmentBody).get("id").asLong();
+
+        mockMvc.perform(get("/api/tickets/{id}/attachments", ticketId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(attachmentId));
+
+        mockMvc.perform(get("/api/tickets/{ticketId}/attachments/{attachmentId}", ticketId, attachmentId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .isEqualTo("hello attachment"));
+
+        String internalCommentBody = mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Komentarz wewnetrzny z zalacznikiem.",
+                                  "internal": true
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long internalCommentId = objectMapper.readTree(internalCommentBody).get("id").asLong();
+        MockMultipartFile internalFile = new MockMultipartFile(
+                "file",
+                "internal.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "internal note".getBytes(StandardCharsets.UTF_8)
+        );
+
+        String internalAttachmentBody = mockMvc.perform(multipart("/api/tickets/{id}/attachments", ticketId)
+                        .file(internalFile)
+                        .param("commentId", internalCommentId.toString())
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.commentId").value(internalCommentId))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long internalAttachmentId = objectMapper.readTree(internalAttachmentBody).get("id").asLong();
+
+        mockMvc.perform(get("/api/tickets/{id}/attachments", ticketId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        mockMvc.perform(get("/api/tickets/{id}/attachments", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        mockMvc.perform(get("/api/tickets/{ticketId}/attachments/{attachmentId}", ticketId, internalAttachmentId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(delete("/api/tickets/{ticketId}/attachments/{attachmentId}", ticketId, attachmentId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(delete("/api/tickets/{ticketId}/attachments/{attachmentId}", ticketId, internalAttachmentId)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/tickets/{id}/attachments", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

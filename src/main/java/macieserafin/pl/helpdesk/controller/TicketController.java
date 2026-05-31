@@ -1,6 +1,8 @@
 package macieserafin.pl.helpdesk.controller;
 
 import jakarta.validation.Valid;
+import macieserafin.pl.helpdesk.dto.AttachmentDownload;
+import macieserafin.pl.helpdesk.dto.AttachmentResponse;
 import macieserafin.pl.helpdesk.dto.CommentResponse;
 import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
@@ -14,7 +16,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import macieserafin.pl.helpdesk.service.TicketService;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +31,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 
@@ -116,5 +127,43 @@ public class TicketController {
     @GetMapping("/tickets/{id}/history")
     public List<TicketHistoryResponse> getHistory(@PathVariable Long id, Principal principal) {
         return ticketService.getHistory(id, principal.getName());
+    }
+
+    @PostMapping(value = "/tickets/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public AttachmentResponse addAttachment(@PathVariable Long id,
+                                            @RequestParam("file") MultipartFile file,
+                                            @RequestParam(required = false) Long commentId,
+                                            Principal principal) {
+        return ticketService.addAttachment(id, commentId, file, principal.getName());
+    }
+
+    @GetMapping("/tickets/{id}/attachments")
+    public List<AttachmentResponse> getAttachments(@PathVariable Long id, Principal principal) {
+        return ticketService.getAttachments(id, principal.getName());
+    }
+
+    @GetMapping("/tickets/{ticketId}/attachments/{attachmentId}")
+    public ResponseEntity<Resource> downloadAttachment(@PathVariable Long ticketId,
+                                                       @PathVariable Long attachmentId,
+                                                       Principal principal) {
+        AttachmentDownload download = ticketService.downloadAttachment(ticketId, attachmentId, principal.getName());
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(download.contentType()))
+                .contentLength(download.fileSize())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(download.fileName(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(download.resource());
+    }
+
+    @DeleteMapping("/tickets/{ticketId}/attachments/{attachmentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAttachment(@PathVariable Long ticketId,
+                                 @PathVariable Long attachmentId,
+                                 Principal principal) {
+        ticketService.deleteAttachment(ticketId, attachmentId, principal.getName());
     }
 }

@@ -7,6 +7,7 @@ public enum TicketHistoryActionType {
     ASSIGNED_CHANGED,
     COMMENT_ADDED,
     ATTACHMENT_ADDED,
+    ATTACHMENT_DELETED,
     TICKET_RESOLVED,
     TICKET_CLOSED
 }

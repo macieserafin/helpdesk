@@ -1,5 +1,7 @@
 package macieserafin.pl.helpdesk.service;
 
+import macieserafin.pl.helpdesk.dto.AttachmentDownload;
+import macieserafin.pl.helpdesk.dto.AttachmentResponse;
 import macieserafin.pl.helpdesk.dto.CommentResponse;
 import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
@@ -7,6 +9,7 @@ import macieserafin.pl.helpdesk.dto.TicketFilterRequest;
 import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
+import macieserafin.pl.helpdesk.model.entity.Attachment;
 import macieserafin.pl.helpdesk.model.entity.Comment;
 import macieserafin.pl.helpdesk.model.entity.Category;
 import macieserafin.pl.helpdesk.model.entity.Ticket;
@@ -15,21 +18,34 @@ import macieserafin.pl.helpdesk.model.entity.User;
 import macieserafin.pl.helpdesk.model.enums.TicketHistoryActionType;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
+import macieserafin.pl.helpdesk.repository.AttachmentRepository;
 import macieserafin.pl.helpdesk.repository.CategoryRepository;
 import macieserafin.pl.helpdesk.repository.CommentRepository;
 import macieserafin.pl.helpdesk.repository.TicketHistoryRepository;
 import macieserafin.pl.helpdesk.repository.TicketRepository;
 import macieserafin.pl.helpdesk.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TicketService {
@@ -37,18 +53,24 @@ public class TicketService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final CommentRepository commentRepository;
+    private final AttachmentRepository attachmentRepository;
     private final TicketHistoryRepository ticketHistoryRepository;
+    private final Path attachmentStorageRoot;
 
     public TicketService(TicketRepository ticketRepository,
                          UserRepository userRepository,
                          CategoryRepository categoryRepository,
                          CommentRepository commentRepository,
-                         TicketHistoryRepository ticketHistoryRepository) {
+                         AttachmentRepository attachmentRepository,
+                         TicketHistoryRepository ticketHistoryRepository,
+                         @Value("${app.attachments.storage-dir:uploads/attachments}") String attachmentStorageDir) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.commentRepository = commentRepository;
+        this.attachmentRepository = attachmentRepository;
         this.ticketHistoryRepository = ticketHistoryRepository;
+        this.attachmentStorageRoot = Paths.get(attachmentStorageDir).toAbsolutePath().normalize();
     }
 
     @Transactional(readOnly = true)
@@ -234,6 +256,114 @@ public class TicketService {
                 .toList();
     }
 
+    @Transactional
+    public AttachmentResponse addAttachment(Long ticketId, Long commentId, MultipartFile file, String username) {
+        User uploadedBy = findUser(username);
+        Ticket ticket = findTicket(ticketId);
+        checkCanViewTicket(uploadedBy, ticket);
+        validateAttachmentFile(file);
+
+        Comment comment = null;
+        if (commentId != null) {
+            comment = findComment(commentId);
+            if (!comment.getTicket().getId().equals(ticket.getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment does not belong to ticket");
+            }
+            if (comment.isInternal() && !isStaff(uploadedBy)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only agents and admins can attach files to internal comments");
+            }
+        }
+
+        String originalFileName = sanitizeFileName(file.getOriginalFilename());
+        String storedFileName = UUID.randomUUID() + "-" + originalFileName;
+        Path ticketDirectory = attachmentStorageRoot.resolve(ticket.getId().toString()).normalize();
+        Path storedFilePath = ticketDirectory.resolve(storedFileName).normalize();
+
+        if (!storedFilePath.startsWith(ticketDirectory)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid file name");
+        }
+
+        try {
+            Files.createDirectories(ticketDirectory);
+            Files.copy(file.getInputStream(), storedFilePath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Could not store attachment", exception);
+        }
+
+        Attachment attachment = new Attachment(ticket, uploadedBy, originalFileName, storedFilePath.toString());
+        attachment.setComment(comment);
+        attachment.setContentType(resolveContentType(file));
+        attachment.setFileSize(file.getSize());
+
+        Attachment savedAttachment = attachmentRepository.save(attachment);
+        saveHistory(ticket, uploadedBy, TicketHistoryActionType.ATTACHMENT_ADDED,
+                null, null, null, null, null, null, "Attachment added: " + originalFileName);
+
+        return mapToAttachmentResponse(savedAttachment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> getAttachments(Long ticketId, String username) {
+        User user = findUser(username);
+        Ticket ticket = findTicket(ticketId);
+        checkCanViewTicket(user, ticket);
+        boolean staff = isStaff(user);
+
+        return attachmentRepository.findByTicketIdOrderByUploadedAtAsc(ticketId)
+                .stream()
+                .filter(attachment -> staff
+                        || attachment.getComment() == null
+                        || !attachment.getComment().isInternal())
+                .map(this::mapToAttachmentResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AttachmentDownload downloadAttachment(Long ticketId, Long attachmentId, String username) {
+        User user = findUser(username);
+        Ticket ticket = findTicket(ticketId);
+        checkCanViewTicket(user, ticket);
+
+        Attachment attachment = findAttachment(ticketId, attachmentId);
+        if (attachment.getComment() != null && attachment.getComment().isInternal() && !isStaff(user)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No access to internal attachment");
+        }
+
+        Path filePath = Paths.get(attachment.getFilePath()).toAbsolutePath().normalize();
+        if (!filePath.startsWith(attachmentStorageRoot) || !Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment file not found");
+        }
+
+        Resource resource = new FileSystemResource(filePath);
+
+        return new AttachmentDownload(resource, attachment.getFileName(),
+                resolveContentType(attachment), attachment.getFileSize());
+    }
+
+    @Transactional
+    public void deleteAttachment(Long ticketId, Long attachmentId, String username) {
+        User user = findUser(username);
+        Ticket ticket = findTicket(ticketId);
+        checkCanViewTicket(user, ticket);
+
+        Attachment attachment = findAttachment(ticketId, attachmentId);
+        if (!attachment.getUploadedBy().getId().equals(user.getId()) && !hasRole(user, "ADMIN")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only uploader or admin can delete attachment");
+        }
+
+        Path filePath = Paths.get(attachment.getFilePath()).toAbsolutePath().normalize();
+        attachmentRepository.delete(attachment);
+        saveHistory(ticket, user, TicketHistoryActionType.ATTACHMENT_DELETED,
+                null, null, null, null, null, null, "Attachment deleted: " + attachment.getFileName());
+
+        try {
+            Files.deleteIfExists(filePath);
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Could not delete attachment file", exception);
+        }
+    }
+
     private TicketResponse mapToTicketResponse(Ticket ticket) {
         String assignedTo = ticket.getAssignedTo() == null ? null : ticket.getAssignedTo().getUsername();
 
@@ -282,6 +412,21 @@ public class TicketService {
                 newAssignedTo,
                 history.getNote(),
                 history.getChangedAt()
+        );
+    }
+
+    private AttachmentResponse mapToAttachmentResponse(Attachment attachment) {
+        Long commentId = attachment.getComment() == null ? null : attachment.getComment().getId();
+
+        return new AttachmentResponse(
+                attachment.getId(),
+                attachment.getTicket().getId(),
+                commentId,
+                attachment.getUploadedBy().getUsername(),
+                attachment.getFileName(),
+                attachment.getContentType(),
+                attachment.getFileSize(),
+                attachment.getUploadedAt()
         );
     }
 
@@ -397,6 +542,17 @@ public class TicketService {
     private Ticket findTicket(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found: " + id));
+    }
+
+    private Comment findComment(Long id) {
+        return commentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found: " + id));
+    }
+
+    private Attachment findAttachment(Long ticketId, Long attachmentId) {
+        return attachmentRepository.findByIdAndTicketId(attachmentId, ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Attachment not found: " + attachmentId));
     }
 
     private User findUser(String username) {
@@ -527,5 +683,30 @@ public class TicketService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private void validateAttachmentFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attachment file is required");
+        }
+    }
+
+    private String sanitizeFileName(String fileName) {
+        String cleanedFileName = StringUtils.cleanPath(fileName == null ? "" : fileName);
+        String normalizedFileName = Paths.get(cleanedFileName).getFileName().toString();
+
+        if (!hasText(normalizedFileName) || normalizedFileName.contains("..")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid file name");
+        }
+
+        return normalizedFileName;
+    }
+
+    private String resolveContentType(MultipartFile file) {
+        return hasText(file.getContentType()) ? file.getContentType() : "application/octet-stream";
+    }
+
+    private String resolveContentType(Attachment attachment) {
+        return hasText(attachment.getContentType()) ? attachment.getContentType() : "application/octet-stream";
     }
 }
