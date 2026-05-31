@@ -25,6 +25,7 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
       listAttachments(ticketId)
     ]);
     const staff = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
+    const assignedToCurrentAgent = ticket.assignedTo === user.username;
 
     const content = htmlToElement(`
       <div class="stack">
@@ -66,7 +67,16 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     const actions = content.querySelector('[data-actions]');
     if (hasRole(user, ROLES.AGENT)) {
       const assign = htmlToElement('<button class="button button-secondary" type="button">Przypisz do mnie</button>');
+      if (assignedToCurrentAgent) {
+        assign.disabled = true;
+        assign.textContent = 'Przypisany do Ciebie';
+        assign.title = 'Ten ticket jest juz przypisany do Ciebie.';
+      }
       assign.addEventListener('click', async () => {
+        if (assignedToCurrentAgent) {
+          showToast('Ten ticket jest juz przypisany do Ciebie.', 'warning');
+          return;
+        }
         try {
           await agentApi.assignTicket(ticket.id);
           showToast('Ticket zostal przypisany.', 'success');
