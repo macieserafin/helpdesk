@@ -34,6 +34,6 @@ export async function AgentDashboardPage({ user }) {
     title: `Kolejka pracy: ${displayUserName(user)}`,
     description: 'Przypisuj tickety, aktualizuj statusy i komentuj przebieg obslugi.'
   }));
-  page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: urgent.slice(0, 6) }));
+  page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: urgent.slice(0, 6), showActions: false }));
   return page;
 }

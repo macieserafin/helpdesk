@@ -32,6 +32,6 @@ export async function AdminDashboardPage() {
     title: 'Centrum administracyjne',
     description: 'Zarzadzanie uzytkownikami i globalnym ruchem ticketow.'
   }));
-  page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: tickets.slice(0, 6) }));
+  page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: tickets.slice(0, 6), showActions: false }));
   return page;
 }

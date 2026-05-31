@@ -39,7 +39,7 @@ export async function UserDashboardPage({ navigate, user }) {
     title: `Witaj, ${displayUserName(user)}`,
     description: 'Tworz i monitoruj swoje zgloszenia serwisowe.'
   }));
-  page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: latest }));
+  page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: latest, showActions: false }));
   page.querySelector('[data-new]').addEventListener('click', () => navigate('/user/tickets/new'));
 
   return page;

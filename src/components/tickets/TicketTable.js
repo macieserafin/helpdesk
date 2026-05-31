@@ -4,7 +4,7 @@ import { EmptyState } from '../common/Feedback.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 
-export function TicketTable({ tickets, actions = () => '' }) {
+export function TicketTable({ tickets, actions = () => '', showActions = true }) {
   if (!tickets?.length) {
     return EmptyState('Brak ticketow', 'Nie znaleziono zgloszen dla tej sekcji.');
   }
@@ -22,7 +22,7 @@ export function TicketTable({ tickets, actions = () => '' }) {
             <th>Autor</th>
             <th>Agent</th>
             <th>Utworzono</th>
-            <th>Akcje</th>
+            ${showActions ? '<th>Akcje</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -36,7 +36,7 @@ export function TicketTable({ tickets, actions = () => '' }) {
               <td data-label="Autor">${escapeHtml(ticket.createdBy)}</td>
               <td data-label="Agent">${escapeHtml(ticket.assignedTo || 'Nieprzypisany')}</td>
               <td data-label="Utworzono">${formatDateTime(ticket.createdAt)}</td>
-              <td data-label="Akcje"><div class="row-actions">${actions(ticket)}</div></td>
+              ${showActions ? `<td data-label="Akcje"><div class="row-actions">${actions(ticket)}</div></td>` : ''}
             </tr>
           `).join('')}
         </tbody>
