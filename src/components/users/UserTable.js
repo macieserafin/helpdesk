@@ -23,12 +23,12 @@ export function UserTable({ users, onSelect, onToggle }) {
         <tbody>
           ${users.map((user) => `
             <tr>
-              <td>#${user.id}</td>
-              <td><button class="link-button" data-select="${user.id}">${escapeHtml(user.username)}</button></td>
-              <td>${escapeHtml(user.email)}</td>
-              <td>${RoleBadges(user.roles)}</td>
-              <td><span class="badge ${user.enabled ? 'status-open' : 'status-cancelled'}">${user.enabled ? 'Aktywny' : 'Nieaktywny'}</span></td>
-              <td>
+              <td data-label="ID">#${user.id}</td>
+              <td data-label="Login"><button class="link-button" data-select="${user.id}">${escapeHtml(user.username)}</button></td>
+              <td data-label="Email">${escapeHtml(user.email)}</td>
+              <td data-label="Role">${RoleBadges(user.roles)}</td>
+              <td data-label="Status"><span class="badge ${user.enabled ? 'status-open' : 'status-cancelled'}">${user.enabled ? 'Aktywny' : 'Nieaktywny'}</span></td>
+              <td data-label="Akcje">
                 <button class="button button-small" data-toggle="${user.id}" data-enabled="${user.enabled}">
                   ${user.enabled ? 'Dezaktywuj' : 'Aktywuj'}
                 </button>

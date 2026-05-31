@@ -1,10 +1,13 @@
+import { listAttachments } from '../../api/attachmentApi.js';
 import * as agentApi from '../../api/agentApi.js';
 import * as ticketApi from '../../api/ticketApi.js';
 import { hasRole } from '../../auth/authService.js';
 import { PriorityBadge, StatusBadge } from '../../components/common/Badges.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
+import { AttachmentPanel } from '../../components/tickets/AttachmentPanel.js';
 import { CommentPanel } from '../../components/tickets/CommentPanel.js';
 import { HistoryTimeline } from '../../components/tickets/HistoryTimeline.js';
+import { TicketPriorityForm } from '../../components/tickets/TicketPriorityForm.js';
 import { TicketStatusForm } from '../../components/tickets/TicketStatusForm.js';
 import { ROLES } from '../../utils/constants.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
@@ -15,10 +18,11 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   const ticketId = params.id;
 
   async function load() {
-    const [ticket, comments, history] = await Promise.all([
+    const [ticket, comments, history, attachments] = await Promise.all([
       ticketApi.getTicket(ticketId),
       ticketApi.getComments(ticketId),
-      ticketApi.getHistory(ticketId)
+      ticketApi.getHistory(ticketId),
+      listAttachments(ticketId)
     ]);
     const staff = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
 
@@ -44,7 +48,10 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
           </aside>
         </section>
         <div class="details-grid">
-          <div data-comments></div>
+          <div class="stack">
+            <div data-comments></div>
+            <div data-attachments></div>
+          </div>
           <div data-history></div>
         </div>
       </div>
@@ -84,6 +91,20 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
         }
       }));
     }
+    if (hasRole(user, ROLES.AGENT)) {
+      actions.append(TicketPriorityForm({
+        currentPriority: ticket.priority,
+        onChange: async (priority) => {
+          try {
+            await agentApi.updateTicketPriority(ticket.id, priority);
+            showToast('Priorytet zostal zmieniony.', 'success');
+            await load();
+          } catch (error) {
+            showToast(error.message, 'error');
+          }
+        }
+      }));
+    }
     if (!staff && ticket.status === 'RESOLVED') {
       const close = htmlToElement('<button class="button button-primary" type="button">Zamknij ticket</button>');
       close.addEventListener('click', async () => {
@@ -107,6 +128,13 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
       staff,
       showToast,
       onSaved: load
+    }));
+    content.querySelector('[data-attachments]').replaceWith(AttachmentPanel({
+      ticketId: ticket.id,
+      attachments,
+      user,
+      showToast,
+      onChanged: load
     }));
     content.querySelector('[data-history]').replaceWith(HistoryTimeline({ history }));
     page.querySelector('[data-content]').replaceChildren(...content.childNodes);

@@ -1,4 +1,4 @@
-import { get, patch, post } from './httpClient.js';
+import { buildQuery, get, patch, post } from './httpClient.js';
 
 export function getUsers() {
   return get('/api/admin/users');
@@ -20,6 +20,6 @@ export function updateUserEnabled(id, enabled) {
   return patch(`/api/admin/users/${id}/enabled`, { enabled });
 }
 
-export function getTickets() {
-  return get('/api/admin/tickets');
+export function getTickets(params = {}) {
+  return get(`/api/admin/tickets${buildQuery(params)}`);
 }

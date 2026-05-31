@@ -28,15 +28,15 @@ export function TicketTable({ tickets, actions = () => '' }) {
         <tbody>
           ${tickets.map((ticket) => `
             <tr>
-              <td>#${ticket.id}</td>
-              <td><button class="link-button" data-ticket-id="${ticket.id}">${escapeHtml(ticket.title)}</button></td>
-              <td>${StatusBadge(ticket.status)}</td>
-              <td>${PriorityBadge(ticket.priority)}</td>
-              <td>${escapeHtml(ticket.category)}</td>
-              <td>${escapeHtml(ticket.createdBy)}</td>
-              <td>${escapeHtml(ticket.assignedTo || 'Nieprzypisany')}</td>
-              <td>${formatDateTime(ticket.createdAt)}</td>
-              <td><div class="row-actions">${actions(ticket)}</div></td>
+              <td data-label="ID">#${ticket.id}</td>
+              <td data-label="Tytul"><button class="link-button" data-ticket-id="${ticket.id}">${escapeHtml(ticket.title)}</button></td>
+              <td data-label="Status">${StatusBadge(ticket.status)}</td>
+              <td data-label="Priorytet">${PriorityBadge(ticket.priority)}</td>
+              <td data-label="Kategoria">${escapeHtml(ticket.category)}</td>
+              <td data-label="Autor">${escapeHtml(ticket.createdBy)}</td>
+              <td data-label="Agent">${escapeHtml(ticket.assignedTo || 'Nieprzypisany')}</td>
+              <td data-label="Utworzono">${formatDateTime(ticket.createdAt)}</td>
+              <td data-label="Akcje"><div class="row-actions">${actions(ticket)}</div></td>
             </tr>
           `).join('')}
         </tbody>

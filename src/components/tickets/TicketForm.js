@@ -1,30 +1,26 @@
 import { createTicket } from '../../api/ticketApi.js';
-import { DEFAULT_CATEGORIES, TICKET_PRIORITIES } from '../../utils/constants.js';
-import { formToObject, htmlToElement } from '../../utils/dom.js';
+import { escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
 import { requireFields } from '../../utils/validators.js';
 
-export function TicketForm({ navigate, showToast }) {
+export function TicketForm({ categories = [], navigate, showToast }) {
+  const disabled = categories.length === 0;
   const form = htmlToElement(`
     <form class="card form-grid">
       <label>Tytul
         <input name="title" maxlength="150" required placeholder="Np. Problem z logowaniem" />
       </label>
-      <label>Priorytet
-        <select name="priority">
-          ${TICKET_PRIORITIES.map((priority) => `<option value="${priority}">${priority}</option>`).join('')}
-        </select>
-      </label>
       <label>Kategoria
-        <input name="category" list="category-options" required placeholder="Konto" />
-        <datalist id="category-options">
-          ${DEFAULT_CATEGORIES.map((category) => `<option value="${category}"></option>`).join('')}
-        </datalist>
+        <select name="category" required ${disabled ? 'disabled' : ''}>
+          <option value="">Wybierz kategorie</option>
+          ${categories.map((category) => `<option value="${escapeHtml(category.name)}">${escapeHtml(category.name)}</option>`).join('')}
+        </select>
       </label>
       <label class="span-2">Opis
         <textarea name="description" rows="7" required placeholder="Opisz problem, kroki i oczekiwany rezultat"></textarea>
       </label>
+      ${disabled ? '<p class="alert alert-warning span-2">Brak aktywnych kategorii. Skontaktuj sie z administratorem.</p>' : ''}
       <div class="form-actions span-2">
-        <button class="button button-primary" type="submit">Utworz ticket</button>
+        <button class="button button-primary" type="submit" ${disabled ? 'disabled' : ''}>Utworz ticket</button>
       </div>
     </form>
   `);

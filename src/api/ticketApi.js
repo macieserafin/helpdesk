@@ -1,11 +1,11 @@
-import { get, patch, post } from './httpClient.js';
+import { buildQuery, get, patch, post } from './httpClient.js';
 
 export function createTicket(payload) {
   return post('/api/tickets', payload);
 }
 
-export function getMyTickets() {
-  return get('/api/tickets/me');
+export function getMyTickets(params = {}) {
+  return get(`/api/tickets/me${buildQuery(params)}`);
 }
 
 export function getTicket(id) {

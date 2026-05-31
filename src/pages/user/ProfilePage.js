@@ -1,6 +1,7 @@
 import { getMe, updateProfile } from '../../api/userApi.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { compactObject, escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
+import { displayUserName } from '../../utils/userDisplay.js';
 
 export async function ProfilePage({ showToast }) {
   const me = await getMe();
@@ -24,7 +25,7 @@ export async function ProfilePage({ showToast }) {
 
   page.querySelector('[data-header]').replaceWith(PageHeader({
     eyebrow: 'Profil',
-    title: me.username,
+    title: displayUserName(me),
     description: me.email
   }));
 

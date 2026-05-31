@@ -1,13 +1,14 @@
 import { login, homeRouteFor } from '../../auth/authService.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { displayUserName } from '../../utils/userDisplay.js';
 
 export function LoginPage({ navigate, showToast }) {
   const page = htmlToElement(`
     <main class="auth-shell">
       <section class="auth-card">
         <div class="auth-copy">
-          <p class="eyebrow">Java 17 + Spring Boot</p>
-          <h1>Helpdesk API Console</h1>
+          <p class="eyebrow">SERVICE DESK PLATFORM</p>
+          <h1>Helpdesk Portal</h1>
           <p>Panel obslugi zgloszen dla uzytkownikow, agentow i administratorow.</p>
         </div>
         <form class="login-form">
@@ -32,7 +33,7 @@ export function LoginPage({ navigate, showToast }) {
     submit.textContent = 'Logowanie...';
     try {
       const user = await login(form.elements.username.value, form.elements.password.value);
-      showToast(`Zalogowano jako ${user.username}.`, 'success');
+      showToast(`Zalogowano jako ${displayUserName(user)}.`, 'success');
       navigate(homeRouteFor(user));
     } catch (error) {
       showToast(error.message, 'error');

@@ -3,9 +3,13 @@ import { PageHeader } from '../../components/common/PageHeader.js';
 import { StatusBadge } from '../../components/common/Badges.js';
 import { TicketTable } from '../../components/tickets/TicketTable.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { pageContent, pageMeta } from '../../utils/pageResponse.js';
+import { displayUserName } from '../../utils/userDisplay.js';
 
 export async function UserDashboardPage({ navigate, user }) {
-  const tickets = await getMyTickets();
+  const response = await getMyTickets({ page: 0, size: 100 });
+  const tickets = pageContent(response);
+  const meta = pageMeta(response);
   const open = tickets.filter((ticket) => !['CLOSED', 'RESOLVED'].includes(ticket.status)).length;
   const closed = tickets.filter((ticket) => ticket.status === 'CLOSED').length;
   const latest = tickets.slice(0, 5);
@@ -14,7 +18,7 @@ export async function UserDashboardPage({ navigate, user }) {
     <section class="page stack">
       <div data-header></div>
       <div class="metric-grid">
-        <article class="metric-card"><span>Wszystkie</span><strong>${tickets.length}</strong></article>
+        <article class="metric-card"><span>Wszystkie</span><strong>${meta.totalElements}</strong></article>
         <article class="metric-card"><span>Aktywne</span><strong>${open}</strong></article>
         <article class="metric-card"><span>Zamkniete</span><strong>${closed}</strong></article>
         <article class="metric-card"><span>Profil</span><strong>${user.profile?.city || 'Uzupelnij'}</strong></article>
@@ -32,7 +36,7 @@ export async function UserDashboardPage({ navigate, user }) {
 
   page.querySelector('[data-header]').replaceWith(PageHeader({
     eyebrow: 'Panel uzytkownika',
-    title: `Witaj, ${user.profile?.firstName || user.username}`,
+    title: `Witaj, ${displayUserName(user)}`,
     description: 'Tworz i monitoruj swoje zgloszenia serwisowe.'
   }));
   page.querySelector('[data-table]').replaceWith(TicketTable({ tickets: latest }));

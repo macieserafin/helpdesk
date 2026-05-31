@@ -1,3 +1,4 @@
+import { HISTORY_ACTION_LABELS } from '../../utils/constants.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 
@@ -11,7 +12,7 @@ export function HistoryTimeline({ history }) {
       <div class="timeline">
         ${history.map((item) => `
           <article class="timeline-item">
-            <strong>${escapeHtml(item.actionType)}</strong>
+            <strong>${escapeHtml(HISTORY_ACTION_LABELS[item.actionType] || item.actionType)}</strong>
             <p>${escapeHtml(item.note || 'Aktualizacja ticketa')}</p>
             <small>${escapeHtml(item.changedBy)} | ${formatDateTime(item.changedAt)}</small>
             ${item.oldStatus || item.newStatus ? `<small>Status: ${item.oldStatus || '-'} -> ${item.newStatus || '-'}</small>` : ''}

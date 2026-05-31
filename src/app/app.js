@@ -1,6 +1,7 @@
 import { requireAuth } from '../auth/authGuard.js';
 import { currentUser, homeRouteFor } from '../auth/authService.js';
 import { requireRole } from '../auth/roleGuard.js';
+import { ApiError } from '../api/httpClient.js';
 import { clearAuthUser } from '../state/authStore.js';
 import { ShellLayout } from '../components/layout/ShellLayout.js';
 import { ToastHost, showToast } from '../components/common/Toast.js';
@@ -28,7 +29,14 @@ async function render() {
 
     let user = currentUser();
     if (!route.public) {
-      user = await requireAuth();
+      try {
+        user = await requireAuth();
+      } catch (error) {
+        clearAuthUser();
+        navigate('/login');
+        showToast('Sesja wygasla albo wymagane jest logowanie.', 'warning');
+        return;
+      }
       if (!requireRole(user, route.roles || [])) {
         navigate(homeRouteFor(user));
         showToast('Brak dostepu do wybranej sekcji.', 'warning');
@@ -43,9 +51,10 @@ async function render() {
     bindGlobalLoading();
   } catch (error) {
     if (!route.public) {
-      clearAuthUser();
-      navigate('/login');
-      showToast('Sesja wygasla albo wymagane jest logowanie.', 'warning');
+      const message = error instanceof ApiError
+        ? error.message
+        : 'Nie udalo sie zaladowac widoku. Sprobuj odswiezyc strone.';
+      showToast(message, 'error');
       return;
     }
 

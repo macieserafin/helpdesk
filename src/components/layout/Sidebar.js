@@ -11,6 +11,7 @@ const NAV = [
   { label: 'Przypisane', path: '/agent/assigned', roles: [ROLES.AGENT] },
   { label: 'Dashboard', path: '/admin', roles: [ROLES.ADMIN] },
   { label: 'Uzytkownicy', path: '/admin/users', roles: [ROLES.ADMIN] },
+  { label: 'Kategorie', path: '/admin/categories', roles: [ROLES.ADMIN] },
   { label: 'Wszystkie tickety', path: '/admin/tickets', roles: [ROLES.ADMIN] }
 ];
 
@@ -25,14 +26,40 @@ export function Sidebar({ user, activePath }) {
     `)
     .join('');
 
+  queueMicrotask(() => {
+    const sidebar = document.querySelector('[data-sidebar]');
+    const toggle = sidebar?.querySelector('[data-nav-toggle]');
+    if (!sidebar || !toggle || toggle.dataset.bound) {
+      return;
+    }
+
+    toggle.dataset.bound = 'true';
+    toggle.addEventListener('click', () => {
+      const open = sidebar.classList.toggle('nav-open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    sidebar.querySelectorAll('.side-link').forEach((link) => {
+      link.addEventListener('click', () => {
+        sidebar.classList.remove('nav-open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  });
+
   return `
-    <aside class="sidebar">
-      <div class="brand">
-        <span class="brand-mark">HD</span>
-        <div>
-          <strong>Helpdesk</strong>
-          <small>API Console</small>
+    <aside class="sidebar" data-sidebar>
+      <div class="sidebar-head">
+        <div class="brand">
+          <span class="brand-mark">HD</span>
+          <div>
+            <strong>Helpdesk</strong>
+            <small>API Console</small>
+          </div>
         </div>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-label="Menu">
+          <span class="hamburger-icon" aria-hidden="true"></span>
+          Menu
+        </button>
       </div>
       <nav class="side-nav">${items}</nav>
     </aside>

@@ -2,9 +2,12 @@ import { getTickets, getUsers } from '../../api/adminApi.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { TicketTable } from '../../components/tickets/TicketTable.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { pageContent, pageMeta } from '../../utils/pageResponse.js';
 
 export async function AdminDashboardPage() {
-  const [users, tickets] = await Promise.all([getUsers(), getTickets()]);
+  const [users, ticketResponse] = await Promise.all([getUsers(), getTickets({ page: 0, size: 100 })]);
+  const tickets = pageContent(ticketResponse);
+  const ticketMeta = pageMeta(ticketResponse);
   const activeUsers = users.filter((user) => user.enabled).length;
   const activeTickets = tickets.filter((ticket) => !['CLOSED', 'CANCELLED', 'REJECTED'].includes(ticket.status)).length;
 
@@ -14,7 +17,7 @@ export async function AdminDashboardPage() {
       <div class="metric-grid">
         <article class="metric-card"><span>Uzytkownicy</span><strong>${users.length}</strong></article>
         <article class="metric-card"><span>Aktywni</span><strong>${activeUsers}</strong></article>
-        <article class="metric-card"><span>Tickety</span><strong>${tickets.length}</strong></article>
+        <article class="metric-card"><span>Tickety</span><strong>${ticketMeta.totalElements}</strong></article>
         <article class="metric-card"><span>Otwarte procesy</span><strong>${activeTickets}</strong></article>
       </div>
       <section class="card stack">

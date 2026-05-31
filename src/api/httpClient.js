@@ -25,12 +25,25 @@ async function parseResponse(response) {
   return text || null;
 }
 
-function buildUrl(path) {
+export function buildUrl(path) {
   if (path.startsWith('http')) {
     return path;
   }
 
   return `${API_BASE_URL}${path}`;
+}
+
+export function buildQuery(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+    query.set(key, value);
+  });
+
+  const queryString = query.toString();
+  return queryString ? `?${queryString}` : '';
 }
 
 export async function request(path, options = {}) {
@@ -80,4 +93,44 @@ export function post(path, body, options = {}) {
 
 export function patch(path, body, options = {}) {
   return request(path, { method: 'PATCH', body, ...options });
+}
+
+export function del(path, options = {}) {
+  return request(path, { method: 'DELETE', ...options });
+}
+
+export async function requestBlob(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const authHeader = getAuthHeader();
+  if (authHeader && !headers.has('Authorization')) {
+    headers.set('Authorization', authHeader);
+  }
+
+  startLoading();
+  let response;
+  try {
+    response = await fetch(buildUrl(path), {
+      credentials: 'omit',
+      ...options,
+      headers
+    });
+  } finally {
+    stopLoading();
+  }
+
+  if (!response.ok) {
+    let message = `Blad API (${response.status})`;
+    try {
+      const payload = await parseResponse(response);
+      message = payload?.message || payload?.error || payload?.detail || payload || message;
+      throw new ApiError(message, response.status, payload);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(message, response.status);
+    }
+  }
+
+  return response.blob();
 }

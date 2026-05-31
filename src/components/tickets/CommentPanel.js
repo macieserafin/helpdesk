@@ -1,6 +1,7 @@
 import { addComment } from '../../api/ticketApi.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
+import { uploadTicketAttachment } from './AttachmentPanel.js';
 
 export function CommentPanel({ ticketId, comments, staff, showToast, onSaved }) {
   const panel = htmlToElement(`
@@ -18,6 +19,12 @@ export function CommentPanel({ ticketId, comments, staff, showToast, onSaved }) 
               ${comment.internal ? '<span class="badge internal-badge">Internal</span>' : ''}
             </div>
             <p>${escapeHtml(comment.content)}</p>
+            ${staff || !comment.internal ? `
+              <form class="comment-attachment-form" data-comment-upload="${comment.id}">
+                <input name="file" type="file" aria-label="Zalacznik do komentarza #${comment.id}" />
+                <button class="button button-small button-secondary" type="submit">Dodaj plik</button>
+              </form>
+            ` : ''}
           </article>
         `).join('') || '<p class="muted">Brak komentarzy.</p>'}
       </div>
@@ -44,6 +51,23 @@ export function CommentPanel({ ticketId, comments, staff, showToast, onSaved }) 
     } catch (error) {
       showToast(error.message, 'error');
     }
+  });
+
+  panel.querySelectorAll('[data-comment-upload]').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        await uploadTicketAttachment({
+          ticketId,
+          commentId: form.dataset.commentUpload,
+          file: form.elements.file.files[0]
+        });
+        showToast('Zalacznik zostal dodany do komentarza.', 'success');
+        await onSaved();
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
   });
 
   return panel;
