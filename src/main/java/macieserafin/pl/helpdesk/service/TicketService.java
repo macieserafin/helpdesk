@@ -65,7 +65,7 @@ public class TicketService {
                     TicketStatus.REJECTED, TicketStatus.CANCELLED),
             TicketStatus.WAITING_FOR_USER, EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED,
                     TicketStatus.CANCELLED),
-            TicketStatus.RESOLVED, EnumSet.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS),
+            TicketStatus.RESOLVED, EnumSet.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS, TicketStatus.CANCELLED),
             TicketStatus.CLOSED, EnumSet.noneOf(TicketStatus.class),
             TicketStatus.REJECTED, EnumSet.noneOf(TicketStatus.class),
             TicketStatus.CANCELLED, EnumSet.noneOf(TicketStatus.class)

@@ -794,6 +794,40 @@ class TicketFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CLOSED"));
 
+        Long resolvedCancelTicketId = createTicket(
+                "user",
+                "user123",
+                "Cancel resolved " + suffix,
+                "Ticket rozwiazany, ale anulowany przez uzytkownika.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", resolvedCancelTicketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", resolvedCancelTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RESOLVED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESOLVED"));
+
+        mockMvc.perform(patch("/api/tickets/{id}/status", resolvedCancelTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CANCELLED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
         Long adminTicketId = createTicket(
                 "user",
                 "user123",
