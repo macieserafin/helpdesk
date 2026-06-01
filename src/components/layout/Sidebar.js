@@ -53,7 +53,7 @@ export function Sidebar({ user, activePath }) {
           <span class="brand-mark">HD</span>
           <div>
             <strong>Helpdesk</strong>
-            <small>API Console</small>
+            <small>Support Portal</small>
           </div>
         </div>
         <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-label="Menu">
