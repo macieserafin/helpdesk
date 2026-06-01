@@ -4,7 +4,6 @@ import * as ticketApi from '../../api/ticketApi.js';
 import { hasRole } from '../../auth/authService.js';
 import { PriorityBadge, StatusBadge } from '../../components/common/Badges.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
-import { AttachmentPanel } from '../../components/tickets/AttachmentPanel.js';
 import { CommentPanel } from '../../components/tickets/CommentPanel.js';
 import { HistoryTimeline } from '../../components/tickets/HistoryTimeline.js';
 import { TicketPriorityForm } from '../../components/tickets/TicketPriorityForm.js';
@@ -55,7 +54,6 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
         <div class="details-grid">
           <div class="stack">
             <div data-comments></div>
-            <div data-attachments></div>
           </div>
           <div data-history></div>
         </div>
@@ -141,16 +139,11 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     content.querySelector('[data-comments]').replaceWith(CommentPanel({
       ticketId: ticket.id,
       comments,
+      attachments,
+      user,
       staff,
       showToast,
       onSaved: load
-    }));
-    content.querySelector('[data-attachments]').replaceWith(AttachmentPanel({
-      ticketId: ticket.id,
-      attachments,
-      user,
-      showToast,
-      onChanged: load
     }));
     content.querySelector('[data-history]').replaceWith(HistoryTimeline({ history }));
     page.querySelector('[data-content]').replaceChildren(...content.childNodes);
