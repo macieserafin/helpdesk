@@ -585,6 +585,18 @@ class TicketFlowIntegrationTests {
                                 """))
                 .andExpect(status().isForbidden());
 
+        mockMvc.perform(patch("/api/tickets/{id}", otherTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Edycja agenta",
+                                  "description": "Agent nie powinien edytowac danych ticketa.",
+                                  "category": "Konto"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
         Long terminalTicketId = createTicket(
                 "user",
                 "user123",

@@ -562,7 +562,7 @@ public class TicketService {
         if (isTerminalStatus(ticket.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Terminal tickets cannot be edited");
         }
-        if (isTicketOwner(actor, ticket) || isStaff(actor)) {
+        if (isTicketOwner(actor, ticket) || hasRole(actor, "ADMIN")) {
             return;
         }
 
