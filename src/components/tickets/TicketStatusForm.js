@@ -5,7 +5,7 @@ const ADMIN_TRANSITIONS = {
   OPEN: ['IN_PROGRESS', 'REJECTED', 'CANCELLED'],
   IN_PROGRESS: ['WAITING_FOR_USER', 'RESOLVED', 'REJECTED', 'CANCELLED'],
   WAITING_FOR_USER: ['IN_PROGRESS', 'RESOLVED', 'CANCELLED'],
-  RESOLVED: ['CLOSED', 'IN_PROGRESS'],
+  RESOLVED: ['CLOSED', 'IN_PROGRESS', 'CANCELLED'],
   CLOSED: [],
   REJECTED: [],
   CANCELLED: []
@@ -44,7 +44,7 @@ function userActions(status, ticket, user) {
   if (ticket.createdBy !== user.username) {
     return [];
   }
-  if (['OPEN', 'IN_PROGRESS', 'WAITING_FOR_USER'].includes(status)) {
+  if (['OPEN', 'IN_PROGRESS', 'WAITING_FOR_USER', 'RESOLVED'].includes(status)) {
     return ['CANCELLED'];
   }
   return [];
