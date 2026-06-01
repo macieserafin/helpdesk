@@ -20,6 +20,10 @@ export function getTicket(id) {
   return get(`/api/tickets/${id}`);
 }
 
+export function updateTicket(id, payload) {
+  return patch(`/api/tickets/${id}`, payload);
+}
+
 export function addComment(id, payload) {
   return post(`/api/tickets/${id}/comments`, payload);
 }
@@ -33,5 +37,5 @@ export function getHistory(id) {
 }
 
 export function updateStatus(id, status) {
-  return patch(`/api/agent/tickets/${id}/status`, { status });
+  return patch(`/api/tickets/${id}/status`, { status });
 }

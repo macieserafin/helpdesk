@@ -180,6 +180,43 @@ tr:last-child td {
   width: 100%;
 }
 
+.inline-edit-form,
+.status-actions {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.status-actions .row-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: stretch;
+}
+
+.status-actions .button {
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
+
+.status-actions-compact {
+  gap: 6px;
+}
+
+.status-actions-compact .inline-form-label {
+  display: none;
+}
+
+.status-actions-compact .row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-actions-compact .button {
+  width: auto;
+}
+
 .inline-form-label {
   color: #344256;
   font-size: 0.82rem;

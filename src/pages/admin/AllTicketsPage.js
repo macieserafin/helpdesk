@@ -1,6 +1,7 @@
 import { getTickets } from '../../api/adminApi.js';
+import { updateTicketStatus } from '../../api/agentApi.js';
 import { getAdminCategories } from '../../api/categoryApi.js';
-import { getTicketPriorities, getTicketStatuses, updateStatus } from '../../api/ticketApi.js';
+import { getTicketPriorities, getTicketStatuses } from '../../api/ticketApi.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { Pagination } from '../../components/tickets/Pagination.js';
 import { TicketFilters } from '../../components/tickets/TicketFilters.js';
@@ -9,7 +10,7 @@ import { TicketStatusForm } from '../../components/tickets/TicketStatusForm.js';
 import { htmlToElement } from '../../utils/dom.js';
 import { pageContent, pageMeta } from '../../utils/pageResponse.js';
 
-export async function AllTicketsPage({ showToast }) {
+export async function AllTicketsPage({ user, showToast }) {
   const [categories, statuses, priorities] = await Promise.all([
     getAdminCategories(),
     getTicketStatuses(),
@@ -35,11 +36,12 @@ export async function AllTicketsPage({ showToast }) {
     });
     tickets.forEach((ticket) => {
       table.querySelector(`[data-status-slot="${ticket.id}"]`).replaceWith(TicketStatusForm({
-        currentStatus: ticket.status,
-        statuses,
+        ticket,
+        user,
+        compact: true,
         onChange: async (status) => {
           try {
-            await updateStatus(ticket.id, status);
+            await updateTicketStatus(ticket.id, status);
             showToast('Status ticketa zostal zaktualizowany.', 'success');
             await load();
           } catch (error) {

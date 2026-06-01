@@ -1,11 +1,13 @@
 import { listAttachments } from '../../api/attachmentApi.js';
 import * as agentApi from '../../api/agentApi.js';
+import * as categoryApi from '../../api/categoryApi.js';
 import * as ticketApi from '../../api/ticketApi.js';
 import { hasRole } from '../../auth/authService.js';
 import { PriorityBadge, StatusBadge } from '../../components/common/Badges.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { CommentPanel } from '../../components/tickets/CommentPanel.js';
 import { HistoryTimeline } from '../../components/tickets/HistoryTimeline.js';
+import { TicketEditForm } from '../../components/tickets/TicketEditForm.js';
 import { TicketPriorityForm } from '../../components/tickets/TicketPriorityForm.js';
 import { TicketStatusForm } from '../../components/tickets/TicketStatusForm.js';
 import { ROLES } from '../../utils/constants.js';
@@ -15,10 +17,10 @@ import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   const page = htmlToElement('<section class="page stack"><div class="stack" data-content></div></section>');
   const ticketId = params.id;
-  const [statuses, assignablePriorities] = await Promise.all([
-    ticketApi.getTicketStatuses(),
-    agentApi.getAssignableTicketPriorities()
-  ]);
+  const staffUser = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
+  const assignablePriorities = staffUser ? await agentApi.getAssignableTicketPriorities() : [];
+  let editing = false;
+  let categories = null;
 
   async function load() {
     const [ticket, comments, history, attachments] = await Promise.all([
@@ -29,6 +31,11 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     ]);
     const staff = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
     const assignedToCurrentAgent = ticket.assignedTo === user.username;
+    const terminal = ['CLOSED', 'REJECTED', 'CANCELLED'].includes(ticket.status);
+    const canEdit = !terminal && (ticket.createdBy === user.username || staff);
+    if (editing && canEdit && categories === null) {
+      categories = await categoryApi.getActiveCategories();
+    }
 
     const content = htmlToElement(`
       <div class="stack">
@@ -67,7 +74,36 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     }));
 
     const actions = content.querySelector('[data-actions]');
-    if (hasRole(user, ROLES.AGENT)) {
+    if (canEdit) {
+      const edit = htmlToElement(`<button class="button button-secondary" type="button">${editing ? 'Ukryj edycje' : 'Edytuj ticket'}</button>`);
+      edit.addEventListener('click', async () => {
+        editing = !editing;
+        await load();
+      });
+      actions.append(edit);
+
+      if (editing) {
+        actions.append(TicketEditForm({
+          ticket,
+          categories,
+          onSubmit: async (payload) => {
+            try {
+              await ticketApi.updateTicket(ticket.id, payload);
+              showToast('Ticket zostal zaktualizowany.', 'success');
+              editing = false;
+              await load();
+            } catch (error) {
+              showToast(error.message, 'error');
+            }
+          },
+          onCancel: async () => {
+            editing = false;
+            await load();
+          }
+        }));
+      }
+    }
+    if (hasRole(user, ROLES.AGENT) && ticket.status === 'OPEN') {
       const assign = htmlToElement('<button class="button button-secondary" type="button">Przypisz do mnie</button>');
       if (assignedToCurrentAgent) {
         assign.disabled = true;
@@ -89,22 +125,39 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
       });
       actions.append(assign);
     }
-    if (staff) {
-      actions.append(TicketStatusForm({
-        currentStatus: ticket.status,
-        statuses,
-        onChange: async (status) => {
-          try {
+    actions.append(TicketStatusForm({
+      ticket,
+      user,
+      onChange: async (status) => {
+        try {
+          if (staff) {
+            await agentApi.updateTicketStatus(ticket.id, status);
+          } else {
             await ticketApi.updateStatus(ticket.id, status);
-            showToast('Status zostal zmieniony.', 'success');
-            await load();
-          } catch (error) {
-            showToast(error.message, 'error');
           }
+          showToast('Status zostal zmieniony.', 'success');
+          editing = false;
+          await load();
+        } catch (error) {
+          showToast(error.message, 'error');
         }
-      }));
+      }
+    }));
+    if (!staff && ticket.status === 'RESOLVED' && ticket.createdBy === user.username) {
+      const close = htmlToElement('<button class="button button-primary" type="button">Zamknij ticket</button>');
+      close.addEventListener('click', async () => {
+        try {
+          await ticketApi.updateStatus(ticket.id, 'CLOSED');
+          showToast('Ticket zostal zamkniety.', 'success');
+          editing = false;
+          await load();
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      });
+      actions.append(close);
     }
-    if (hasRole(user, ROLES.AGENT)) {
+    if (staff) {
       actions.append(TicketPriorityForm({
         currentPriority: ticket.priority,
         priorities: assignablePriorities,
@@ -118,19 +171,6 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
           }
         }
       }));
-    }
-    if (!staff && ticket.status === 'RESOLVED') {
-      const close = htmlToElement('<button class="button button-primary" type="button">Zamknij ticket</button>');
-      close.addEventListener('click', async () => {
-        try {
-          await ticketApi.updateStatus(ticket.id, 'CLOSED');
-          showToast('Ticket zostal zamkniety.', 'success');
-          await load();
-        } catch (error) {
-          showToast(error.message, 'error');
-        }
-      });
-      actions.append(close);
     }
     const back = htmlToElement('<button class="button button-ghost" type="button">Wroc</button>');
     back.addEventListener('click', () => window.history.back());

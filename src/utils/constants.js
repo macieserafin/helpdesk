@@ -75,6 +75,7 @@ export const PRIORITY_LABELS = {
 
 export const HISTORY_ACTION_LABELS = {
   TICKET_CREATED: 'Utworzono ticket',
+  TICKET_UPDATED: 'Edytowano ticket',
   STATUS_CHANGED: 'Zmieniono status',
   PRIORITY_CHANGED: 'Zmieniono priorytet',
   ASSIGNED_CHANGED: 'Zmieniono przypisanie',
