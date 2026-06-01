@@ -11,6 +11,7 @@ import macieserafin.pl.helpdesk.dto.TicketFilterRequest;
 import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
 import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
+import macieserafin.pl.helpdesk.dto.UpdateTicketRequest;
 import macieserafin.pl.helpdesk.dto.UpdateTicketStatusRequest;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
@@ -103,6 +104,14 @@ public class TicketController {
         return ticketService.getTicket(id, principal.getName());
     }
 
+    //edycja danych ticketa
+    @PatchMapping("/tickets/{id}")
+    public TicketResponse updateTicket(@PathVariable Long id,
+                                       @Valid @RequestBody UpdateTicketRequest request,
+                                       Principal principal) {
+        return ticketService.updateTicket(id, request, principal.getName());
+    }
+
     //przypisanie zgloszenia do agenta
     @PatchMapping("/agent/tickets/{id}/assign")
     public TicketResponse assignTicket(@PathVariable Long id, Principal principal) {
@@ -122,6 +131,13 @@ public class TicketController {
     public TicketResponse updateTicketStatus(@PathVariable Long id,
                                              @Valid @RequestBody UpdateTicketStatusRequest request,
                                              Principal principal) {
+        return ticketService.updateStatus(id, request.getStatus(), principal.getName());
+    }
+
+    @PatchMapping("/tickets/{id}/status")
+    public TicketResponse updateTicketStatusForCurrentUser(@PathVariable Long id,
+                                                           @Valid @RequestBody UpdateTicketStatusRequest request,
+                                                           Principal principal) {
         return ticketService.updateStatus(id, request.getStatus(), principal.getName());
     }
 

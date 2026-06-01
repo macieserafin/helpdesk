@@ -8,6 +8,7 @@ import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
 import macieserafin.pl.helpdesk.dto.TicketFilterRequest;
 import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
+import macieserafin.pl.helpdesk.dto.UpdateTicketRequest;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
 import macieserafin.pl.helpdesk.model.entity.Attachment;
 import macieserafin.pl.helpdesk.model.entity.Comment;
@@ -44,11 +45,32 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class TicketService {
+    private static final Set<TicketStatus> TERMINAL_STATUSES = EnumSet.of(
+            TicketStatus.CLOSED,
+            TicketStatus.REJECTED,
+            TicketStatus.CANCELLED
+    );
+
+    private static final Map<TicketStatus, Set<TicketStatus>> ALLOWED_STATUS_TRANSITIONS = Map.of(
+            TicketStatus.OPEN, EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.REJECTED, TicketStatus.CANCELLED),
+            TicketStatus.IN_PROGRESS, EnumSet.of(TicketStatus.WAITING_FOR_USER, TicketStatus.RESOLVED,
+                    TicketStatus.REJECTED, TicketStatus.CANCELLED),
+            TicketStatus.WAITING_FOR_USER, EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED,
+                    TicketStatus.CANCELLED),
+            TicketStatus.RESOLVED, EnumSet.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS),
+            TicketStatus.CLOSED, EnumSet.noneOf(TicketStatus.class),
+            TicketStatus.REJECTED, EnumSet.noneOf(TicketStatus.class),
+            TicketStatus.CANCELLED, EnumSet.noneOf(TicketStatus.class)
+    );
+
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -129,6 +151,41 @@ public class TicketService {
     }
 
     @Transactional
+    public TicketResponse updateTicket(Long id, UpdateTicketRequest request, String username) {
+        User actor = findUser(username);
+        Ticket ticket = findTicket(id);
+        checkCanEditTicket(actor, ticket);
+
+        String newTitle = requireText(request.getTitle(), "Title is required");
+        String newDescription = requireText(request.getDescription(), "Description is required");
+        Category newCategory = findActiveCategory(request.getCategory());
+
+        if (!ticket.getTitle().equals(newTitle)) {
+            String oldTitle = ticket.getTitle();
+            ticket.setTitle(newTitle);
+            saveHistory(ticket, actor, TicketHistoryActionType.TICKET_UPDATED,
+                    null, null, null, null, null, null,
+                    "Title changed: " + oldTitle + " -> " + newTitle);
+        }
+
+        if (!ticket.getDescription().equals(newDescription)) {
+            ticket.setDescription(newDescription);
+            saveHistory(ticket, actor, TicketHistoryActionType.TICKET_UPDATED,
+                    null, null, null, null, null, null, "Description changed");
+        }
+
+        if (!ticket.getCategory().getId().equals(newCategory.getId())) {
+            String oldCategory = ticket.getCategory().getName();
+            ticket.setCategory(newCategory);
+            saveHistory(ticket, actor, TicketHistoryActionType.TICKET_UPDATED,
+                    null, null, null, null, null, null,
+                    "Category changed: " + oldCategory + " -> " + newCategory.getName());
+        }
+
+        return mapToTicketResponse(ticket);
+    }
+
+    @Transactional
     public TicketResponse updatePriority(Long id, UpdateTicketPriorityRequest request, String username) {
         if (request.getPriority() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Priority is required");
@@ -164,13 +221,20 @@ public class TicketService {
         User oldAssignedTo = ticket.getAssignedTo();
         TicketStatus oldStatus = ticket.getStatus();
 
+        if (isTerminalStatus(oldStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Terminal tickets cannot be assigned");
+        }
+
         if (oldAssignedTo != null && oldAssignedTo.getId().equals(agent.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is already assigned to this agent");
         }
 
         ticket.setAssignedTo(agent);
-        ticket.setStatus(TicketStatus.IN_PROGRESS);
-        saveHistory(ticket, agent, TicketHistoryActionType.ASSIGNED_CHANGED, oldStatus, TicketStatus.IN_PROGRESS,
+        TicketStatus newStatus = oldStatus == TicketStatus.OPEN ? TicketStatus.IN_PROGRESS : oldStatus;
+        ticket.setStatus(newStatus);
+        saveHistory(ticket, agent, TicketHistoryActionType.ASSIGNED_CHANGED,
+                oldStatus == newStatus ? null : oldStatus,
+                oldStatus == newStatus ? null : newStatus,
                 null, null, oldAssignedTo, agent, "Ticket assigned");
 
         return mapToTicketResponse(ticket);
@@ -195,6 +259,9 @@ public class TicketService {
         ticket.setStatus(newStatus);
         if (newStatus == TicketStatus.RESOLVED) {
             ticket.setResolvedAt(LocalDateTime.now());
+        }
+        if (oldStatus == TicketStatus.RESOLVED && newStatus == TicketStatus.IN_PROGRESS) {
+            ticket.setResolvedAt(null);
         }
         if (newStatus == TicketStatus.CLOSED) {
             ticket.setClosedAt(LocalDateTime.now());
@@ -222,7 +289,7 @@ public class TicketService {
         Comment savedComment = commentRepository.save(comment);
         TicketStatus oldStatus = ticket.getStatus();
         TicketStatus newStatus = statusAfterComment(ticket, author, request.isInternal());
-        if (newStatus != null && oldStatus != newStatus) {
+        if (oldStatus != newStatus) {
             ticket.setStatus(newStatus);
         }
 
@@ -460,17 +527,46 @@ public class TicketService {
     }
 
     private void checkCanChangeStatus(User actor, Ticket ticket, TicketStatus newStatus) {
-        if (newStatus == TicketStatus.CLOSED) {
-            if (ticket.getStatus() != TicketStatus.RESOLVED) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only resolved tickets can be closed");
-            }
-            if (!isTicketOwner(actor, ticket) && !hasRole(actor, "ADMIN")) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only ticket owner or admin can close ticket");
-            }
+        TicketStatus oldStatus = ticket.getStatus();
+        if (!isAllowedStatusTransition(oldStatus, newStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Status transition " + oldStatus + " -> " + newStatus + " is not allowed");
+        }
+
+        if (hasRole(actor, "ADMIN")) {
             return;
         }
 
-        checkHasAnyRole(actor, "AGENT", "ADMIN");
+        if (isCustomer(actor)) {
+            if (!isTicketOwner(actor, ticket)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only ticket owner can change ticket status");
+            }
+            if (newStatus == TicketStatus.CANCELLED || newStatus == TicketStatus.CLOSED) {
+                return;
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Users can only cancel or close their own tickets");
+        }
+
+        if (hasRole(actor, "AGENT") && newStatus != TicketStatus.CLOSED) {
+            return;
+        }
+
+        if (newStatus == TicketStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only ticket owner or admin can close ticket");
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Missing role");
+    }
+
+    private void checkCanEditTicket(User actor, Ticket ticket) {
+        if (isTerminalStatus(ticket.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Terminal tickets cannot be edited");
+        }
+        if (isTicketOwner(actor, ticket) || isStaff(actor)) {
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No access to edit ticket");
     }
 
     private void checkCanCreateTicket(User user) {
@@ -486,7 +582,7 @@ public class TicketService {
     }
 
     private void checkCanAssignPriority(User user) {
-        checkHasAnyRole(user, "AGENT");
+        checkHasAnyRole(user, "AGENT", "ADMIN");
     }
 
     private void checkCanAddComment(User author, Ticket ticket, boolean internal) {
@@ -511,10 +607,11 @@ public class TicketService {
         if (internal || isTerminalStatus(ticket.getStatus())) {
             return ticket.getStatus();
         }
-        if (isStaff(author)) {
+        if (isStaff(author) && isAllowedStatusTransition(ticket.getStatus(), TicketStatus.WAITING_FOR_USER)) {
             return TicketStatus.WAITING_FOR_USER;
         }
-        if (isTicketOwner(author, ticket) && ticket.getStatus() == TicketStatus.WAITING_FOR_USER) {
+        if (isTicketOwner(author, ticket)
+                && isAllowedStatusTransition(ticket.getStatus(), TicketStatus.IN_PROGRESS)) {
             return TicketStatus.IN_PROGRESS;
         }
 
@@ -522,9 +619,11 @@ public class TicketService {
     }
 
     private boolean isTerminalStatus(TicketStatus status) {
-        return status == TicketStatus.CLOSED
-                || status == TicketStatus.REJECTED
-                || status == TicketStatus.CANCELLED;
+        return TERMINAL_STATUSES.contains(status);
+    }
+
+    private boolean isAllowedStatusTransition(TicketStatus oldStatus, TicketStatus newStatus) {
+        return ALLOWED_STATUS_TRANSITIONS.getOrDefault(oldStatus, Set.of()).contains(newStatus);
     }
 
     private void saveHistory(Ticket ticket, User changedBy, TicketHistoryActionType actionType,

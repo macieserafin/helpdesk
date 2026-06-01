@@ -511,6 +511,310 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldEditOwnTicketAndRecordHistory() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String categoryName = "Edit category " + suffix;
+        mockMvc.perform(post("/api/admin/categories")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s"
+                                }
+                                """.formatted(categoryName)))
+                .andExpect(status().isCreated());
+
+        Long ticketId = createTicket(
+                "user",
+                "user123",
+                "Editable ticket " + suffix,
+                "Opis przed edycja.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/tickets/{id}", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Edited ticket %s",
+                                  "description": "Opis po edycji.",
+                                  "category": "%s"
+                                }
+                                """.formatted(suffix, categoryName)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Edited ticket " + suffix))
+                .andExpect(jsonPath("$.description").value("Opis po edycji."))
+                .andExpect(jsonPath("$.category").value(categoryName));
+
+        String historyBody = mockMvc.perform(get("/api/tickets/{id}/history", ticketId)
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(actionTypes(historyBody)).contains("TICKET_UPDATED");
+        assertThat(notes(historyBody)).contains("Title changed", "Description changed", "Category changed");
+    }
+
+    @Test
+    void shouldRejectTicketEditWithoutPermissionForTerminalTicketOrInvalidCategory() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String otherUsername = "other-" + suffix;
+        String otherPassword = "other123";
+        registerUser(otherUsername, otherPassword);
+
+        Long otherTicketId = createTicket(
+                otherUsername,
+                otherPassword,
+                "Other ticket " + suffix,
+                "Ticket innego uzytkownika.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/tickets/{id}", otherTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Nie moja edycja",
+                                  "description": "Proba edycji cudzego ticketa.",
+                                  "category": "Konto"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        Long terminalTicketId = createTicket(
+                "user",
+                "user123",
+                "Terminal ticket " + suffix,
+                "Ticket bedzie anulowany.",
+                "Konto"
+        );
+        mockMvc.perform(patch("/api/tickets/{id}/status", terminalTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CANCELLED"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/tickets/{id}", terminalTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Po terminacji",
+                                  "description": "Nie powinno przejsc.",
+                                  "category": "Konto"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Terminal tickets cannot be edited"));
+
+        Long categoryTicketId = createTicket(
+                "user",
+                "user123",
+                "Category validation ticket " + suffix,
+                "Ticket do walidacji kategorii.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/tickets/{id}", categoryTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Nieistniejaca kategoria",
+                                  "description": "Nie powinno przejsc.",
+                                  "category": "Brak kategorii %s"
+                                }
+                                """.formatted(suffix)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Category not found or inactive: Brak kategorii " + suffix));
+
+        String inactiveCategory = "Inactive edit category " + suffix;
+        String inactiveCategoryBody = mockMvc.perform(post("/api/admin/categories")
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s"
+                                }
+                                """.formatted(inactiveCategory)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long inactiveCategoryId = objectMapper.readTree(inactiveCategoryBody).get("id").asLong();
+        mockMvc.perform(delete("/api/admin/categories/{id}", inactiveCategoryId)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(patch("/api/tickets/{id}", categoryTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Nieaktywna kategoria",
+                                  "description": "Nie powinno przejsc.",
+                                  "category": "%s"
+                                }
+                                """.formatted(inactiveCategory)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Category not found or inactive: " + inactiveCategory));
+    }
+
+    @Test
+    void shouldEnforceTicketStatusTransitionsAndRoleRules() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        Long ticketId = createTicket(
+                "user",
+                "user123",
+                "Status machine ticket " + suffix,
+                "Ticket do testow statusow.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/tickets/{id}/status", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Status transition OPEN -> CLOSED is not allowed"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", ticketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "WAITING_FOR_USER"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Status transition OPEN -> WAITING_FOR_USER is not allowed"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", ticketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "WAITING_FOR_USER"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WAITING_FOR_USER"));
+
+        mockMvc.perform(patch("/api/tickets/{id}/status", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RESOLVED"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/tickets/{id}/status", ticketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CANCELLED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", ticketId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "IN_PROGRESS"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Status transition CANCELLED -> IN_PROGRESS is not allowed"));
+
+        Long closeTicketId = createTicket(
+                "user",
+                "user123",
+                "Close after resolved " + suffix,
+                "Ticket do zamkniecia.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", closeTicketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", closeTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "RESOLVED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESOLVED"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", closeTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/tickets/{id}/status", closeTicketId)
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "CLOSED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+
+        Long adminTicketId = createTicket(
+                "user",
+                "user123",
+                "Admin status ticket " + suffix,
+                "Ticket do odrzucenia przez admina.",
+                "Konto"
+        );
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/status", adminTicketId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "REJECTED"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"));
+    }
+
+    @Test
     void shouldHandleTicketAttachments() throws Exception {
         String suffix = UUID.randomUUID().toString();
         String createdTicketBody = mockMvc.perform(post("/api/tickets")
@@ -871,6 +1175,44 @@ class TicketFlowIntegrationTests {
         return false;
     }
 
+    private void registerUser(String username, String password) throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "email": "%s@example.com",
+                                  "password": "%s",
+                                  "profile": {
+                                    "firstName": "Other",
+                                    "lastName": "User",
+                                    "city": "Lodz"
+                                  }
+                                }
+                                """.formatted(username, username, password)))
+                .andExpect(status().isCreated());
+    }
+
+    private Long createTicket(String username, String password, String title, String description, String category)
+            throws Exception {
+        String createdTicketBody = mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic(username, password))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "%s",
+                                  "description": "%s",
+                                  "category": "%s"
+                                }
+                                """.formatted(title, description, category)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(createdTicketBody).get("id").asLong();
+    }
+
     private JsonNode findUser(String responseBody, String username) throws Exception {
         for (JsonNode user : objectMapper.readTree(responseBody)) {
             if (user.get("username").asText().equals(username)) {
@@ -898,5 +1240,16 @@ class TicketFlowIntegrationTests {
         }
 
         return actionTypes.toString();
+    }
+
+    private String notes(String responseBody) throws Exception {
+        StringBuilder notes = new StringBuilder();
+        for (JsonNode historyEntry : objectMapper.readTree(responseBody)) {
+            if (historyEntry.hasNonNull("note")) {
+                notes.append(historyEntry.get("note").asText()).append(",");
+            }
+        }
+
+        return notes.toString();
     }
 }
