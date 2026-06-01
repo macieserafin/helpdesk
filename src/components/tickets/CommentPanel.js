@@ -1,5 +1,6 @@
 import { addComment } from '../../api/ticketApi.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
+import { FIELD_LIMITS } from '../../utils/constants.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 import { uploadTicketAttachment } from './AttachmentPanel.js';
 
@@ -30,7 +31,7 @@ export function CommentPanel({ ticketId, comments, staff, showToast, onSaved }) 
       </div>
       <form class="comment-form">
         <label>Nowy komentarz
-          <textarea name="content" rows="4" required></textarea>
+          <textarea name="content" maxlength="${FIELD_LIMITS.comment.content.max}" rows="4" required></textarea>
         </label>
         ${staff ? '<label class="checkbox"><input type="checkbox" name="internal" /> Komentarz wewnetrzny</label>' : ''}
         <button class="button button-primary" type="submit">Dodaj komentarz</button>

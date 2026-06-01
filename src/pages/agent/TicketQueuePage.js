@@ -1,5 +1,6 @@
 import * as agentApi from '../../api/agentApi.js';
 import { getActiveCategories } from '../../api/categoryApi.js';
+import { getTicketPriorities, getTicketStatuses } from '../../api/ticketApi.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { Pagination } from '../../components/tickets/Pagination.js';
 import { TicketFilters } from '../../components/tickets/TicketFilters.js';
@@ -8,7 +9,11 @@ import { htmlToElement } from '../../utils/dom.js';
 import { pageContent, pageMeta } from '../../utils/pageResponse.js';
 
 export async function TicketQueuePage({ showToast }) {
-  const categories = await getActiveCategories();
+  const [categories, statuses, priorities] = await Promise.all([
+    getActiveCategories(),
+    getTicketStatuses(),
+    getTicketPriorities()
+  ]);
   const page = htmlToElement('<section class="page stack"><div data-header></div><div data-filters></div><div data-table></div><div data-pagination></div></section>');
   let filters = {};
   let pageIndex = 0;
@@ -24,6 +29,8 @@ export async function TicketQueuePage({ showToast }) {
     const filterNode = TicketFilters({
       filters,
       categories,
+      statuses,
+      priorities,
       showAgent: true,
       onChange: async (nextFilters) => {
         filters = nextFilters;

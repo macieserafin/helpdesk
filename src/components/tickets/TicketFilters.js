@@ -20,6 +20,8 @@ function normalizeDateTime(value) {
 export function TicketFilters({
   filters = {},
   categories = [],
+  statuses = TICKET_STATUSES,
+  priorities = TICKET_PRIORITIES,
   showAgent = false,
   onChange,
   onReset
@@ -34,7 +36,7 @@ export function TicketFilters({
         <label>Status
           <select name="status">
             <option value="">Wszystkie</option>
-            ${TICKET_STATUSES.map((status) => `
+            ${statuses.map((status) => `
               <option value="${status}" ${filters.status === status ? 'selected' : ''}>${STATUS_LABELS[status] || status}</option>
             `).join('')}
           </select>
@@ -42,7 +44,7 @@ export function TicketFilters({
         <label>Priorytet
           <select name="priority">
             <option value="">Wszystkie</option>
-            ${TICKET_PRIORITIES.map((priority) => `
+            ${priorities.map((priority) => `
               <option value="${priority}" ${filters.priority === priority ? 'selected' : ''}>${PRIORITY_LABELS[priority] || priority}</option>
             `).join('')}
           </select>

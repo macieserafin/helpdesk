@@ -1,5 +1,6 @@
 import { createTicket } from '../../api/ticketApi.js';
 import { escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
+import { FIELD_LIMITS } from '../../utils/constants.js';
 import { requireFields } from '../../utils/validators.js';
 
 export function TicketForm({ categories = [], navigate, showToast }) {
@@ -7,7 +8,7 @@ export function TicketForm({ categories = [], navigate, showToast }) {
   const form = htmlToElement(`
     <form class="card form-grid">
       <label>Tytul
-        <input name="title" maxlength="150" required placeholder="Np. Problem z logowaniem" />
+        <input name="title" maxlength="${FIELD_LIMITS.ticket.title.max}" required placeholder="Np. Problem z logowaniem" />
       </label>
       <label>Kategoria
         <select name="category" required ${disabled ? 'disabled' : ''}>
@@ -16,7 +17,7 @@ export function TicketForm({ categories = [], navigate, showToast }) {
         </select>
       </label>
       <label class="span-2">Opis
-        <textarea name="description" rows="7" required placeholder="Opisz problem, kroki i oczekiwany rezultat"></textarea>
+        <textarea name="description" maxlength="${FIELD_LIMITS.ticket.description.max}" rows="7" required placeholder="Opisz problem, kroki i oczekiwany rezultat"></textarea>
       </label>
       ${disabled ? '<p class="alert alert-warning span-2">Brak aktywnych kategorii. Skontaktuj sie z administratorem.</p>' : ''}
       <div class="form-actions span-2">

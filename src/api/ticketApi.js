@@ -8,6 +8,14 @@ export function getMyTickets(params = {}) {
   return get(`/api/tickets/me${buildQuery(params)}`);
 }
 
+export function getTicketStatuses() {
+  return get('/api/tickets/statuses');
+}
+
+export function getTicketPriorities() {
+  return get('/api/tickets/priorities');
+}
+
 export function getTicket(id) {
   return get(`/api/tickets/${id}`);
 }

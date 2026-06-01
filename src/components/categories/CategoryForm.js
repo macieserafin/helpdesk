@@ -1,4 +1,5 @@
 import { compactObject, escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
+import { FIELD_LIMITS } from '../../utils/constants.js';
 import { requireFields } from '../../utils/validators.js';
 
 export function CategoryForm({ category = null, onSubmit, onCancel }) {
@@ -7,13 +8,13 @@ export function CategoryForm({ category = null, onSubmit, onCancel }) {
     <form class="card form-grid">
       <h2 class="span-2">${editing ? 'Edycja kategorii' : 'Nowa kategoria'}</h2>
       <label>Nazwa
-        <input name="name" maxlength="100" required value="${escapeHtml(category?.name || '')}" />
+        <input name="name" maxlength="${FIELD_LIMITS.category.name.max}" required value="${escapeHtml(category?.name || '')}" />
       </label>
       <label class="checkbox">
         <input name="active" type="checkbox" ${category?.active ?? true ? 'checked' : ''} /> Aktywna
       </label>
       <label class="span-2">Opis
-        <textarea name="description" rows="4">${escapeHtml(category?.description || '')}</textarea>
+        <textarea name="description" maxlength="${FIELD_LIMITS.category.description.max}" rows="4">${escapeHtml(category?.description || '')}</textarea>
       </label>
       <div class="form-actions span-2">
         ${editing ? '<button class="button button-ghost" type="button" data-cancel>Anuluj</button>' : ''}

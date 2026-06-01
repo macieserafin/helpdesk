@@ -4,6 +4,10 @@ export function getTicketQueue(params = {}) {
   return get(`/api/agent/tickets${buildQuery(params)}`);
 }
 
+export function getAssignableTicketPriorities() {
+  return get('/api/agent/tickets/assignable-priorities');
+}
+
 export function assignTicket(id) {
   return patch(`/api/agent/tickets/${id}/assign`, {});
 }

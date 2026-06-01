@@ -1,5 +1,32 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+export const FIELD_LIMITS = {
+  username: { min: 3, max: 50 },
+  email: { max: 100 },
+  password: { min: 6, max: 100 },
+  roleName: { max: 30 },
+  profile: {
+    firstName: { max: 50 },
+    lastName: { max: 50 },
+    phoneNumber: { max: 30 },
+    city: { max: 100 },
+    streetAddress: { max: 150 },
+    postalCode: { max: 20 }
+  },
+  ticket: {
+    title: { max: 150 },
+    description: { max: 4000 },
+    category: { max: 100 }
+  },
+  category: {
+    name: { max: 100 },
+    description: { max: 1000 }
+  },
+  comment: {
+    content: { max: 2000 }
+  }
+};
+
 export const ROLES = {
   USER: 'USER',
   AGENT: 'AGENT',

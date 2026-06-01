@@ -16,6 +16,10 @@ import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   const page = htmlToElement('<section class="page stack"><div class="stack" data-content></div></section>');
   const ticketId = params.id;
+  const [statuses, assignablePriorities] = await Promise.all([
+    ticketApi.getTicketStatuses(),
+    agentApi.getAssignableTicketPriorities()
+  ]);
 
   async function load() {
     const [ticket, comments, history, attachments] = await Promise.all([
@@ -90,6 +94,7 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     if (staff) {
       actions.append(TicketStatusForm({
         currentStatus: ticket.status,
+        statuses,
         onChange: async (status) => {
           try {
             await ticketApi.updateStatus(ticket.id, status);
@@ -104,6 +109,7 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     if (hasRole(user, ROLES.AGENT)) {
       actions.append(TicketPriorityForm({
         currentPriority: ticket.priority,
+        priorities: assignablePriorities,
         onChange: async (priority) => {
           try {
             await agentApi.updateTicketPriority(ticket.id, priority);

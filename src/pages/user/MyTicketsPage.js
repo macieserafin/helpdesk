@@ -1,5 +1,5 @@
 import { getActiveCategories } from '../../api/categoryApi.js';
-import { getMyTickets } from '../../api/ticketApi.js';
+import { getMyTickets, getTicketPriorities, getTicketStatuses } from '../../api/ticketApi.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { Pagination } from '../../components/tickets/Pagination.js';
 import { TicketFilters } from '../../components/tickets/TicketFilters.js';
@@ -8,7 +8,11 @@ import { htmlToElement } from '../../utils/dom.js';
 import { pageContent, pageMeta } from '../../utils/pageResponse.js';
 
 export async function MyTicketsPage() {
-  const categories = await getActiveCategories();
+  const [categories, statuses, priorities] = await Promise.all([
+    getActiveCategories(),
+    getTicketStatuses(),
+    getTicketPriorities()
+  ]);
   const page = htmlToElement('<section class="page stack"><div data-header></div><div data-filters></div><div data-table></div><div data-pagination></div></section>');
   let filters = {};
   let pageIndex = 0;
@@ -26,6 +30,8 @@ export async function MyTicketsPage() {
     const filterNode = TicketFilters({
       filters,
       categories,
+      statuses,
+      priorities,
       onChange: async (nextFilters) => {
         filters = nextFilters;
         pageIndex = 0;
