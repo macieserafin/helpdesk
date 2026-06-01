@@ -30,9 +30,10 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
       listAttachments(ticketId)
     ]);
     const staff = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
+    const admin = hasRole(user, ROLES.ADMIN);
     const assignedToCurrentAgent = ticket.assignedTo === user.username;
     const terminal = ['CLOSED', 'REJECTED', 'CANCELLED'].includes(ticket.status);
-    const canEdit = !terminal && (ticket.createdBy === user.username || staff);
+    const canEdit = !terminal && (ticket.createdBy === user.username || admin);
     if (editing && canEdit && categories === null) {
       categories = await categoryApi.getActiveCategories();
     }
@@ -40,30 +41,30 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     const content = htmlToElement(`
       <div class="stack">
         <div data-header></div>
-        <section class="details-grid">
-          <article class="card stack">
-            <div class="section-title"><h2>Dane ticketa</h2>${StatusBadge(ticket.status)}</div>
-            <dl class="details-list">
-              <div><dt>Priorytet</dt><dd>${PriorityBadge(ticket.priority)}</dd></div>
-              <div><dt>Kategoria</dt><dd>${escapeHtml(ticket.category)}</dd></div>
-              <div><dt>Autor</dt><dd>${escapeHtml(ticket.createdBy)}</dd></div>
-              <div><dt>Agent</dt><dd>${escapeHtml(ticket.assignedTo || 'Nieprzypisany')}</dd></div>
-              <div><dt>Utworzono</dt><dd>${formatDateTime(ticket.createdAt)}</dd></div>
-              <div><dt>Aktualizacja</dt><dd>${formatDateTime(ticket.updatedAt)}</dd></div>
-            </dl>
-            <p class="ticket-description">${escapeHtml(ticket.description)}</p>
-          </article>
-          <aside class="card stack">
-            <h2>Akcje</h2>
-            <div class="stack" data-actions></div>
-          </aside>
-        </section>
-        <div class="details-grid">
-          <div class="stack">
+        <section class="ticket-details-layout">
+          <div class="ticket-main-column stack">
+            <article class="card stack">
+              <div class="section-title"><h2>Dane ticketa</h2>${StatusBadge(ticket.status)}</div>
+              <dl class="details-list">
+                <div><dt>Priorytet</dt><dd>${PriorityBadge(ticket.priority)}</dd></div>
+                <div><dt>Kategoria</dt><dd>${escapeHtml(ticket.category)}</dd></div>
+                <div><dt>Autor</dt><dd>${escapeHtml(ticket.createdBy)}</dd></div>
+                <div><dt>Agent</dt><dd>${escapeHtml(ticket.assignedTo || 'Nieprzypisany')}</dd></div>
+                <div><dt>Utworzono</dt><dd>${formatDateTime(ticket.createdAt)}</dd></div>
+                <div><dt>Aktualizacja</dt><dd>${formatDateTime(ticket.updatedAt)}</dd></div>
+              </dl>
+              <p class="ticket-description">${escapeHtml(ticket.description)}</p>
+            </article>
             <div data-comments></div>
           </div>
-          <div data-history></div>
-        </div>
+          <aside class="ticket-side-column stack">
+            <section class="card stack">
+              <h2>Akcje</h2>
+              <div class="stack" data-actions></div>
+            </section>
+            <div data-history></div>
+          </aside>
+        </section>
       </div>
     `);
 

@@ -51,6 +51,22 @@
   align-items: start;
 }
 
+.ticket-details-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.ticket-main-column,
+.ticket-side-column {
+  min-width: 0;
+}
+
+.ticket-side-column {
+  align-self: start;
+}
+
 .details-list {
   display: grid;
   gap: 12px;
@@ -179,6 +195,7 @@
 @media (max-width: 1050px) {
   .split-view,
   .details-grid,
+  .ticket-details-layout,
   .auth-card,
   .comment-attachment-item {
     grid-template-columns: 1fr;
