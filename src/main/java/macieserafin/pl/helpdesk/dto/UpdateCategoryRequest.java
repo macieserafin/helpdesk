@@ -2,11 +2,14 @@ package macieserafin.pl.helpdesk.dto;
 
 import jakarta.validation.constraints.Size;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.CATEGORY_DESCRIPTION_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.CATEGORY_NAME_MAX_LENGTH;
+
 public class UpdateCategoryRequest {
-    @Size(max = 100, message = "Category name must not exceed 100 characters")
+    @Size(max = CATEGORY_NAME_MAX_LENGTH, message = "Category name must not exceed 100 characters")
     private String name;
 
-    @Size(max = 1000, message = "Description must not exceed 1000 characters")
+    @Size(max = CATEGORY_DESCRIPTION_MAX_LENGTH, message = "Description must not exceed 1000 characters")
     private String description;
 
     private Boolean active;

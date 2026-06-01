@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.CATEGORY_NAME_MAX_LENGTH;
+
 @Entity
 @Table(name = "categories")
 public class Category {
@@ -22,7 +24,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", length = 100, nullable = false, unique = true)
+    @Column(name = "name", length = CATEGORY_NAME_MAX_LENGTH, nullable = false, unique = true)
     private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")

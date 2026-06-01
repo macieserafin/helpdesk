@@ -22,6 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.EMAIL_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.USERNAME_MAX_LENGTH;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -30,10 +33,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username", length = 50, nullable = false, unique = true)
+    @Column(name = "username", length = USERNAME_MAX_LENGTH, nullable = false, unique = true)
     private String username;
 
-    @Column(name = "email", length = 100, nullable = false, unique = true)
+    @Column(name = "email", length = EMAIL_MAX_LENGTH, nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)

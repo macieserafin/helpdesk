@@ -21,6 +21,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.TICKET_ENUM_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.TICKET_TITLE_MAX_LENGTH;
+
 @Entity
 @Table(name = "tickets")
 public class Ticket {
@@ -29,18 +32,18 @@ public class Ticket {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "title", length = 150, nullable = false)
+    @Column(name = "title", length = TICKET_TITLE_MAX_LENGTH, nullable = false)
     private String title;
 
     @Column(name = "description", columnDefinition = "TEXT", nullable = false)
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 30, nullable = false)
+    @Column(name = "status", length = TICKET_ENUM_MAX_LENGTH, nullable = false)
     private TicketStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "priority", length = 30, nullable = false)
+    @Column(name = "priority", length = TICKET_ENUM_MAX_LENGTH, nullable = false)
     private TicketPriority priority;
 
     @ManyToOne(fetch = FetchType.LAZY)

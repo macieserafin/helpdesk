@@ -10,6 +10,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.PROFILE_CITY_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.PROFILE_FIRST_NAME_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.PROFILE_LAST_NAME_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.PROFILE_PHONE_NUMBER_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.PROFILE_POSTAL_CODE_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.PROFILE_STREET_ADDRESS_MAX_LENGTH;
+
 @Entity
 @Table(name = "user_profiles")
 public class UserProfile {
@@ -18,22 +25,22 @@ public class UserProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "first_name", length = 50)
+    @Column(name = "first_name", length = PROFILE_FIRST_NAME_MAX_LENGTH)
     private String firstName;
 
-    @Column(name = "last_name", length = 50)
+    @Column(name = "last_name", length = PROFILE_LAST_NAME_MAX_LENGTH)
     private String lastName;
 
-    @Column(name = "phone_number", length = 30)
+    @Column(name = "phone_number", length = PROFILE_PHONE_NUMBER_MAX_LENGTH)
     private String phoneNumber;
 
-    @Column(name = "city", length = 100)
+    @Column(name = "city", length = PROFILE_CITY_MAX_LENGTH)
     private String city;
 
-    @Column(name = "street_address", length = 150)
+    @Column(name = "street_address", length = PROFILE_STREET_ADDRESS_MAX_LENGTH)
     private String streetAddress;
 
-    @Column(name = "postal_code", length = 20)
+    @Column(name = "postal_code", length = PROFILE_POSTAL_CODE_MAX_LENGTH)
     private String postalCode;
 
     @OneToOne(fetch = FetchType.LAZY)

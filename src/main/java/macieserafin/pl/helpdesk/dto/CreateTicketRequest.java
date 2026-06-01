@@ -3,17 +3,21 @@ package macieserafin.pl.helpdesk.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.TICKET_CATEGORY_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.TICKET_DESCRIPTION_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.TICKET_TITLE_MAX_LENGTH;
+
 public class CreateTicketRequest {
     @NotBlank(message = "Title is required")
-    @Size(max = 120, message = "Title must not exceed 120 characters")
+    @Size(max = TICKET_TITLE_MAX_LENGTH, message = "Title must not exceed 150 characters")
     private String title;
 
     @NotBlank(message = "Description is required")
-    @Size(max = 4000, message = "Description must not exceed 4000 characters")
+    @Size(max = TICKET_DESCRIPTION_MAX_LENGTH, message = "Description must not exceed 4000 characters")
     private String description;
 
     @NotBlank(message = "Category is required")
-    @Size(max = 80, message = "Category must not exceed 80 characters")
+    @Size(max = TICKET_CATEGORY_MAX_LENGTH, message = "Category must not exceed 100 characters")
     private String category;
 
     public CreateTicketRequest() {

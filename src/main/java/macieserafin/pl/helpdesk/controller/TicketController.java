@@ -12,6 +12,8 @@ import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
 import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.dto.UpdateTicketStatusRequest;
+import macieserafin.pl.helpdesk.model.enums.TicketPriority;
+import macieserafin.pl.helpdesk.model.enums.TicketStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -78,6 +80,21 @@ public class TicketController {
                                                              direction = Sort.Direction.DESC) Pageable pageable,
                                                      Principal principal) {
         return PageResponse.of(ticketService.getMyTickets(principal.getName(), filter, pageable));
+    }
+
+    @GetMapping("/tickets/statuses")
+    public List<TicketStatus> getTicketStatuses() {
+        return List.of(TicketStatus.values());
+    }
+
+    @GetMapping("/tickets/priorities")
+    public List<TicketPriority> getTicketPriorities() {
+        return List.of(TicketPriority.values());
+    }
+
+    @GetMapping("/agent/tickets/assignable-priorities")
+    public List<TicketPriority> getAssignableTicketPriorities() {
+        return List.of(TicketPriority.LOW, TicketPriority.MEDIUM, TicketPriority.HIGH, TicketPriority.CRITICAL);
     }
 
     //pobieranuie konkretnego zgloszenia po ID

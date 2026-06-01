@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.ROLE_NAME_MAX_LENGTH;
+
 @Entity
 @Table(name = "roles")
 public class Role {
@@ -20,7 +22,7 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", length = 30, nullable = false, unique = true)
+    @Column(name = "name", length = ROLE_NAME_MAX_LENGTH, nullable = false, unique = true)
     private String name;
 
     @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)

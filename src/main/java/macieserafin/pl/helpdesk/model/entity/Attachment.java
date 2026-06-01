@@ -13,6 +13,10 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.ATTACHMENT_CONTENT_TYPE_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.ATTACHMENT_FILE_NAME_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.ATTACHMENT_FILE_PATH_MAX_LENGTH;
+
 @Entity
 @Table(name = "attachments")
 public class Attachment {
@@ -33,13 +37,13 @@ public class Attachment {
     @JoinColumn(name = "uploaded_by_id", nullable = false)
     private User uploadedBy;
 
-    @Column(name = "file_name", length = 255, nullable = false)
+    @Column(name = "file_name", length = ATTACHMENT_FILE_NAME_MAX_LENGTH, nullable = false)
     private String fileName;
 
-    @Column(name = "file_path", length = 500, nullable = false)
+    @Column(name = "file_path", length = ATTACHMENT_FILE_PATH_MAX_LENGTH, nullable = false)
     private String filePath;
 
-    @Column(name = "content_type", length = 100)
+    @Column(name = "content_type", length = ATTACHMENT_CONTENT_TYPE_MAX_LENGTH)
     private String contentType;
 
     @Column(name = "file_size")

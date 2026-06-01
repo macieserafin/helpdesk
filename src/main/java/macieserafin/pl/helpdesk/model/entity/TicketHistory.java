@@ -18,6 +18,8 @@ import macieserafin.pl.helpdesk.model.enums.TicketStatus;
 
 import java.time.LocalDateTime;
 
+import static macieserafin.pl.helpdesk.contract.ApiContract.TICKET_ENUM_MAX_LENGTH;
+
 @Entity
 @Table(name = "ticket_history")
 public class TicketHistory {
@@ -39,19 +41,19 @@ public class TicketHistory {
     private TicketHistoryActionType actionType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "old_status", length = 30)
+    @Column(name = "old_status", length = TICKET_ENUM_MAX_LENGTH)
     private TicketStatus oldStatus;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "new_status", length = 30)
+    @Column(name = "new_status", length = TICKET_ENUM_MAX_LENGTH)
     private TicketStatus newStatus;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "old_priority", length = 30)
+    @Column(name = "old_priority", length = TICKET_ENUM_MAX_LENGTH)
     private TicketPriority oldPriority;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "new_priority", length = 30)
+    @Column(name = "new_priority", length = TICKET_ENUM_MAX_LENGTH)
     private TicketPriority newPriority;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -14,6 +14,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -161,6 +162,19 @@ class TicketFlowIntegrationTests {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("enabled"));
+
+        mockMvc.perform(post("/api/tickets")
+                        .with(httpBasic("user", "user123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "title", "x".repeat(151),
+                                "description", "Opis",
+                                "category", "Hardware"
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors[0].field").value("title"));
     }
 
     @Test
@@ -187,6 +201,30 @@ class TicketFlowIntegrationTests {
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("User not found: 999999"))
                 .andExpect(jsonPath("$.path").value("/api/admin/users/999999"));
+    }
+
+    @Test
+    void shouldExposeTicketStatusAndPriorityContracts() throws Exception {
+        mockMvc.perform(get("/api/tickets/statuses")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(7))
+                .andExpect(jsonPath("$[0]").value("OPEN"))
+                .andExpect(jsonPath("$[6]").value("CANCELLED"));
+
+        mockMvc.perform(get("/api/tickets/priorities")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$[0]").value("UNASSIGNED"))
+                .andExpect(jsonPath("$[4]").value("CRITICAL"));
+
+        mockMvc.perform(get("/api/agent/tickets/assignable-priorities")
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[0]").value("LOW"))
+                .andExpect(jsonPath("$[3]").value("CRITICAL"));
     }
 
     @Test
