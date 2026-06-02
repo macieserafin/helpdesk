@@ -1,0 +1,243 @@
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    linear-gradient(rgba(246, 248, 251, 0.88), rgba(246, 248, 251, 0.88)),
+    url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=80') center / cover;
+}
+
+.auth-card {
+  display: grid;
+  width: min(940px, 100%);
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: var(--space-7);
+  border: 1px solid rgba(217, 225, 234, 0.9);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-7);
+}
+
+.auth-copy h1 {
+  margin: 0 0 12px;
+  font-size: 3.25rem;
+  line-height: 1;
+}
+
+.auth-copy p {
+  color: var(--color-muted);
+  font-size: 1.05rem;
+}
+
+.login-form {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+}
+
+.split-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.ticket-details-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.ticket-main-column,
+.ticket-side-column {
+  min-width: 0;
+}
+
+.ticket-side-column {
+  align-self: start;
+}
+
+.details-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.details-list div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.details-list dt {
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.details-list dd {
+  margin: 0;
+}
+
+.ticket-description {
+  margin: 0;
+  border-left: 3px solid var(--color-primary);
+  background: #f4f8fb;
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+
+.comment-list,
+.timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.comment {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+
+.comment-internal {
+  border-color: #e6c36a;
+  background: #fff8e6;
+}
+
+.comment > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.comment span,
+.timeline small {
+  color: var(--color-muted);
+}
+
+.comment p {
+  margin: 10px 0 0;
+}
+
+.comment-form {
+  display: grid;
+  gap: 12px;
+}
+
+.comment-attachments {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.comment-attachment-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+  min-width: 0;
+}
+
+.comment-attachment-item div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.comment-attachment-item strong,
+.comment-attachment-item span,
+.file-summary {
+  overflow-wrap: anywhere;
+}
+
+.comment-attachment-item span,
+.file-summary {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.file-summary {
+  line-height: 1.45;
+}
+
+.comment-attachments-only {
+  background: #fbfcfe;
+}
+
+.timeline-item {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  border-left: 3px solid #9ab4c3;
+  padding-left: 14px;
+  overflow-wrap: anywhere;
+}
+
+.timeline-item p {
+  margin: 0;
+}
+
+@media (max-width: 1050px) {
+  .split-view,
+  .details-grid,
+  .ticket-details-layout,
+  .auth-card,
+  .comment-attachment-item {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-copy h1 {
+    font-size: 2.4rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .auth-shell {
+    align-items: stretch;
+    padding: var(--space-4);
+  }
+
+  .auth-card {
+    align-content: start;
+    padding: var(--space-5);
+  }
+
+  .auth-copy h1 {
+    font-size: 2rem;
+  }
+
+  .details-list div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .comment > div:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: var(--space-4);
+  }
+
+  .auth-copy h1 {
+    font-size: 1.75rem;
+  }
+}
