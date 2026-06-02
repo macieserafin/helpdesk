@@ -3,8 +3,10 @@ package macieserafin.pl.helpdesk.config;
 import macieserafin.pl.helpdesk.dto.ApiErrorResponse;
 import macieserafin.pl.helpdesk.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
@@ -23,6 +25,12 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
+    private final boolean basicAuthEnabled;
+
+    public SecurityConfig(@Value("${app.security.basic-auth-enabled:true}") boolean basicAuthEnabled) {
+        this.basicAuthEnabled = basicAuthEnabled;
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             UserService userService,
@@ -35,11 +43,21 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/user", "/user/**").hasRole("USER")
                         .requestMatchers("/agent", "/agent/**").hasRole("AGENT")
-                        .requestMatchers("/api/users", "/api/users/**").authenticated()
-                        .requestMatchers("/api/tickets", "/api/tickets/**").authenticated()
-                        .requestMatchers("/api/agent", "/api/agent/**").authenticated()
                         .requestMatchers("/api/admin", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
+                        .requestMatchers("/api/categories").authenticated()
+                        .requestMatchers("/api/tickets/statuses", "/api/tickets/priorities").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/tickets").hasRole("USER")
+                        .requestMatchers("/api/tickets/me").hasRole("USER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/tickets/*").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/tickets/*/status").hasRole("USER")
+                        .requestMatchers("/api/tickets/**").authenticated()
+                        .requestMatchers("/api/agent/tickets/assignable-priorities").hasAnyRole("AGENT", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/agent/tickets/*/status").hasAnyRole("AGENT", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/agent/tickets/*/priority").hasAnyRole("AGENT", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/agent/tickets/*/assign").hasRole("AGENT")
+                        .requestMatchers("/api/agent", "/api/agent/**").hasRole("AGENT")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptions -> exceptions
@@ -69,8 +87,13 @@ public class SecurityConfig {
                                             "Invalid username or password",
                                             request.getRequestURI()));
                         })
-                        .permitAll())
-                .httpBasic(Customizer.withDefaults());
+                        .permitAll());
+
+        if (basicAuthEnabled) {
+            http.httpBasic(Customizer.withDefaults());
+        } else {
+            http.httpBasic(AbstractHttpConfigurer::disable);
+        }
 
         return http.build();
     }

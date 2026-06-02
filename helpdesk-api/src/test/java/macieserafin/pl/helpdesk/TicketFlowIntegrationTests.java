@@ -225,6 +225,15 @@ class TicketFlowIntegrationTests {
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0]").value("LOW"))
                 .andExpect(jsonPath("$[3]").value("CRITICAL"));
+
+        mockMvc.perform(get("/api/agent/tickets/assignable-priorities")
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4));
+
+        mockMvc.perform(get("/api/agent/tickets/assignable-priorities")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -482,7 +491,7 @@ class TicketFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("RESOLVED"));
 
-        mockMvc.perform(patch("/api/agent/tickets/{id}/status", ticketId)
+        mockMvc.perform(patch("/api/tickets/{id}/status", ticketId)
                         .with(httpBasic("user", "user123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -1137,6 +1146,10 @@ class TicketFlowIntegrationTests {
         mockMvc.perform(get("/api/agent/tickets")
                         .with(httpBasic("user", "user123")))
                 .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/agent/tickets")
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -1183,6 +1196,17 @@ class TicketFlowIntegrationTests {
                         .with(httpBasic("agent", "agent123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assignedTo").value("agent"));
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/priority", ticketId)
+                        .with(httpBasic("admin", "admin123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priority").value("HIGH"));
 
         mockMvc.perform(patch("/api/agent/tickets/{id}/status", ticketId)
                         .with(httpBasic("admin", "admin123"))
