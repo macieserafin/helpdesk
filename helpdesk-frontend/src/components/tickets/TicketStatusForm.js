@@ -77,7 +77,15 @@ export function TicketStatusForm({ ticket, user, onChange, compact = false }) {
 
   panel.querySelectorAll('[data-status]').forEach((button) => {
     button.addEventListener('click', async () => {
-      await onChange(button.dataset.status);
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Zmieniam...';
+      try {
+        await onChange(button.dataset.status);
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     });
   });
 

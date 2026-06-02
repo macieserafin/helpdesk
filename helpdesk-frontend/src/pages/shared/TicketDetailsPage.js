@@ -13,6 +13,7 @@ import { TicketStatusForm } from '../../components/tickets/TicketStatusForm.js';
 import { ROLES } from '../../utils/constants.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 
 export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   const page = htmlToElement('<section class="page stack"><div class="stack" data-content></div></section>');
@@ -90,17 +91,18 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
           onSubmit: async (payload) => {
             try {
               await ticketApi.updateTicket(ticket.id, payload);
-              showToast('Ticket zostal zaktualizowany.', 'success');
+              showToast('Ticket został zaktualizowany.', 'success');
               editing = false;
               await load();
             } catch (error) {
-              showToast(error.message, 'error');
+              showToast(getErrorMessage(error), 'error');
             }
           },
           onCancel: async () => {
             editing = false;
             await load();
-          }
+          },
+          onError: (error) => showToast(getErrorMessage(error), 'error')
         }));
       }
     }
@@ -116,12 +118,18 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
           showToast('Ten ticket jest juz przypisany do Ciebie.', 'warning');
           return;
         }
+        const originalText = assign.textContent;
+        assign.disabled = true;
+        assign.textContent = 'Przypisuję...';
         try {
           await agentApi.assignTicket(ticket.id);
-          showToast('Ticket zostal przypisany.', 'success');
+          showToast('Ticket został przypisany.', 'success');
           await load();
         } catch (error) {
-          showToast(error.message, 'error');
+          showToast(getErrorMessage(error), 'error');
+        } finally {
+          assign.disabled = false;
+          assign.textContent = originalText;
         }
       });
       actions.append(assign);
@@ -136,24 +144,30 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
           } else {
             await ticketApi.updateStatus(ticket.id, status);
           }
-          showToast('Status zostal zmieniony.', 'success');
+          showToast('Status został zmieniony.', 'success');
           editing = false;
           await load();
         } catch (error) {
-          showToast(error.message, 'error');
+          showToast(getErrorMessage(error), 'error');
         }
       }
     }));
     if (!staff && ticket.status === 'RESOLVED' && ticket.createdBy === user.username) {
       const close = htmlToElement('<button class="button button-primary" type="button">Zamknij ticket</button>');
       close.addEventListener('click', async () => {
+        const originalText = close.textContent;
+        close.disabled = true;
+        close.textContent = 'Zamykam...';
         try {
           await ticketApi.updateStatus(ticket.id, 'CLOSED');
-          showToast('Ticket zostal zamkniety.', 'success');
+          showToast('Ticket został zamknięty.', 'success');
           editing = false;
           await load();
         } catch (error) {
-          showToast(error.message, 'error');
+          showToast(getErrorMessage(error), 'error');
+        } finally {
+          close.disabled = false;
+          close.textContent = originalText;
         }
       });
       actions.append(close);
@@ -165,15 +179,15 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
         onChange: async (priority) => {
           try {
             await agentApi.updateTicketPriority(ticket.id, priority);
-            showToast('Priorytet zostal zmieniony.', 'success');
+            showToast('Priorytet został zmieniony.', 'success');
             await load();
           } catch (error) {
-            showToast(error.message, 'error');
+            showToast(getErrorMessage(error), 'error');
           }
         }
       }));
     }
-    const back = htmlToElement('<button class="button button-ghost" type="button">Wroc</button>');
+    const back = htmlToElement('<button class="button button-ghost" type="button">Wróć</button>');
     back.addEventListener('click', () => window.history.back());
     actions.append(back);
 

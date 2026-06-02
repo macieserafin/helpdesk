@@ -1,8 +1,11 @@
 import * as categoryApi from '../../api/categoryApi.js';
 import { CategoryForm } from '../../components/categories/CategoryForm.js';
 import { CategoryTable } from '../../components/categories/CategoryTable.js';
+import { confirmAction } from '../../components/common/ConfirmDialog.js';
+import { ErrorState, LoadingState } from '../../components/common/Feedback.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 
 export async function CategoriesManagementPage({ showToast }) {
   const page = htmlToElement(`
@@ -23,35 +26,55 @@ export async function CategoriesManagementPage({ showToast }) {
   }));
 
   async function loadTable() {
-    const categories = await categoryApi.getAdminCategories();
-    const table = CategoryTable({
-      categories,
-      onSelect: async (id) => {
-        selectedCategory = categories.find((category) => category.id === id) || await categoryApi.getAdminCategory(id);
-        await loadForm();
-      },
-      onDeactivate: async (id) => {
-        try {
-          await categoryApi.deleteCategory(id);
-          showToast('Kategoria zostala zdezaktywowana.', 'success');
-          selectedCategory = null;
-          await loadTable();
+    const old = page.querySelector('[data-table]') || page.querySelector('.table-wrap') || page.querySelector('.empty-state') || page.querySelector('.state-panel') || page.querySelector('.alert-error');
+    const loading = LoadingState('Ładowanie kategorii...');
+    old.replaceWith(loading);
+
+    try {
+      const categories = await categoryApi.getAdminCategories();
+      const table = CategoryTable({
+        categories,
+        onSelect: async (id) => {
+          selectedCategory = categories.find((category) => category.id === id) || await categoryApi.getAdminCategory(id);
           await loadForm();
-        } catch (error) {
-          showToast(error.message, 'error');
+        },
+        onDeactivate: async (id) => {
+          const category = categories.find((item) => item.id === id);
+          const confirmed = await confirmAction({
+            title: 'Dezaktywować kategorię?',
+            message: `Kategoria ${category?.name || `#${id}`} zniknie z listy aktywnych kategorii dla nowych ticketów.`,
+            confirmText: 'Dezaktywuj'
+          });
+          if (!confirmed) {
+            return;
+          }
+
+          try {
+            await categoryApi.deleteCategory(id);
+            showToast('Kategoria została zdezaktywowana.', 'success');
+            selectedCategory = null;
+            await loadTable();
+            await loadForm();
+          } catch (error) {
+            showToast(getErrorMessage(error), 'error');
+          }
+        },
+        onActivate: async (id) => {
+          try {
+            await categoryApi.updateCategory(id, { active: true });
+            showToast('Kategoria została aktywowana.', 'success');
+            await loadTable();
+          } catch (error) {
+            showToast(getErrorMessage(error), 'error');
+          }
         }
-      },
-      onActivate: async (id) => {
-        try {
-          await categoryApi.updateCategory(id, { active: true });
-          showToast('Kategoria zostala aktywowana.', 'success');
-          await loadTable();
-        } catch (error) {
-          showToast(error.message, 'error');
-        }
-      }
-    });
-    (page.querySelector('[data-table]') || page.querySelector('.table-wrap') || page.querySelector('.empty-state')).replaceWith(table);
+      });
+      loading.replaceWith(table);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Nie udało się załadować kategorii.');
+      showToast(message, 'error');
+      loading.replaceWith(ErrorState(message));
+    }
   }
 
   async function loadForm() {
@@ -67,18 +90,19 @@ export async function CategoriesManagementPage({ showToast }) {
               description: payload.description
             });
           }
-          showToast('Kategoria zostala zapisana.', 'success');
+          showToast('Kategoria została zapisana.', 'success');
           selectedCategory = null;
           await loadTable();
           await loadForm();
         } catch (error) {
-          showToast(error.message, 'error');
+          showToast(getErrorMessage(error), 'error');
         }
       },
       onCancel: async () => {
         selectedCategory = null;
         await loadForm();
-      }
+      },
+      onError: (error) => showToast(getErrorMessage(error), 'error')
     });
     (page.querySelector('[data-form]') || page.querySelector('.split-view > .card.form-grid')).replaceWith(form);
   }

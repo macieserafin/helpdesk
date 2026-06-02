@@ -3,10 +3,12 @@ import { currentUser, homeRouteFor } from '../auth/authService.js';
 import { requireRole } from '../auth/roleGuard.js';
 import { ApiError } from '../api/httpClient.js';
 import { clearAuthUser } from '../state/authStore.js';
+import { ErrorState, LoadingState } from '../components/common/Feedback.js';
 import { ShellLayout } from '../components/layout/ShellLayout.js';
 import { ToastHost, showToast } from '../components/common/Toast.js';
 import { subscribeUi } from '../state/uiStore.js';
-import { htmlToElement, setContent } from '../utils/dom.js';
+import { escapeHtml, htmlToElement, setContent } from '../utils/dom.js';
+import { getErrorMessage } from '../utils/errorMessage.js';
 import { currentPath, matchRoute, navigate } from './router.js';
 
 const root = document.querySelector('#app');
@@ -34,14 +36,22 @@ async function render() {
       } catch (error) {
         clearAuthUser();
         navigate('/login');
-        showToast('Sesja wygasla albo wymagane jest logowanie.', 'warning');
+        showToast('Sesja wygasła albo wymagane jest logowanie.', 'warning');
         return;
       }
       if (!requireRole(user, route.roles || [])) {
         navigate(homeRouteFor(user));
-        showToast('Brak dostepu do wybranej sekcji.', 'warning');
+        showToast('Brak dostępu do wybranej sekcji.', 'warning');
         return;
       }
+
+      setContent(root, ShellLayout({
+        user,
+        content: LoadingState('Ładowanie widoku...'),
+        activePath: path
+      }));
+      root.append(ToastHost());
+      bindGlobalLoading();
     }
 
     const page = await route.page({ params: route.params, user, navigate, showToast });
@@ -52,13 +62,23 @@ async function render() {
   } catch (error) {
     if (!route.public) {
       const message = error instanceof ApiError
-        ? error.message
-        : 'Nie udalo sie zaladowac widoku. Sprobuj odswiezyc strone.';
+        ? getErrorMessage(error)
+        : getErrorMessage(error, 'Nie udało się załadować widoku. Spróbuj odświeżyć stronę.');
+      const user = currentUser();
       showToast(message, 'error');
+      if (user) {
+        setContent(root, ShellLayout({
+          user,
+          content: ErrorState(message),
+          activePath: path
+        }));
+        root.append(ToastHost());
+        bindGlobalLoading();
+      }
       return;
     }
 
-    setContent(root, htmlToElement(`<main class="auth-shell"><section class="auth-card"><h1>Blad</h1><p>${error.message}</p></section></main>`));
+    setContent(root, htmlToElement(`<main class="auth-shell"><section class="auth-card"><h1>Błąd</h1><p>${escapeHtml(getErrorMessage(error))}</p></section></main>`));
   }
 }
 

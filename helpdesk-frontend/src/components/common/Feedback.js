@@ -1,10 +1,10 @@
-import { htmlToElement } from '../../utils/dom.js';
+import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 
-export function LoadingState(message = 'Ladowanie danych...') {
+export function LoadingState(message = 'Ładowanie danych...') {
   return htmlToElement(`
     <div class="state-panel">
       <span class="spinner"></span>
-      <p>${message}</p>
+      <p>${escapeHtml(message)}</p>
     </div>
   `);
 }
@@ -20,6 +20,6 @@ export function EmptyState(title, detail) {
 
 export function ErrorState(message) {
   return htmlToElement(`
-    <div class="alert alert-error">${message}</div>
+    <div class="alert alert-error">${escapeHtml(message)}</div>
   `);
 }

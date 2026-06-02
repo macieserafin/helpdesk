@@ -1,8 +1,11 @@
 import * as adminApi from '../../api/adminApi.js';
+import { confirmAction } from '../../components/common/ConfirmDialog.js';
+import { ErrorState, LoadingState } from '../../components/common/Feedback.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { UserForm } from '../../components/users/UserForm.js';
 import { UserTable } from '../../components/users/UserTable.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 
 export async function UsersManagementPage({ showToast }) {
   const page = htmlToElement(`
@@ -22,22 +25,43 @@ export async function UsersManagementPage({ showToast }) {
   }));
 
   async function loadTable() {
-    const users = await adminApi.getUsers();
-    const table = UserTable({
-      users,
-      onSelect: loadUserForm,
-      onToggle: async (id, enabled) => {
-        try {
-          await adminApi.updateUserEnabled(id, enabled);
-          showToast('Status konta zostal zmieniony.', 'success');
-          await loadTable();
-        } catch (error) {
-          showToast(error.message, 'error');
+    const old = page.querySelector('[data-table]') || page.querySelector('.table-wrap') || page.querySelector('.empty-state') || page.querySelector('.state-panel') || page.querySelector('.alert-error');
+    const loading = LoadingState('Ładowanie użytkowników...');
+    old.replaceWith(loading);
+
+    try {
+      const users = await adminApi.getUsers();
+      const table = UserTable({
+        users,
+        onSelect: loadUserForm,
+        onToggle: async (id, enabled) => {
+          const user = users.find((item) => item.id === id);
+          if (!enabled) {
+            const confirmed = await confirmAction({
+              title: 'Dezaktywować konto?',
+              message: `Konto ${user?.username || `#${id}`} nie będzie mogło się zalogować do systemu.`,
+              confirmText: 'Dezaktywuj'
+            });
+            if (!confirmed) {
+              return;
+            }
+          }
+
+          try {
+            await adminApi.updateUserEnabled(id, enabled);
+            showToast('Status konta został zmieniony.', 'success');
+            await loadTable();
+          } catch (error) {
+            showToast(getErrorMessage(error), 'error');
+          }
         }
-      }
-    });
-    const old = page.querySelector('[data-table]') || page.querySelector('.table-wrap') || page.querySelector('.empty-state');
-    old.replaceWith(table);
+      });
+      loading.replaceWith(table);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Nie udało się załadować użytkowników.');
+      showToast(message, 'error');
+      loading.replaceWith(ErrorState(message));
+    }
   }
 
   async function loadUserForm(id = null) {
@@ -52,11 +76,11 @@ export async function UsersManagementPage({ showToast }) {
           } else {
             await adminApi.createUser(payload);
           }
-          showToast('Dane uzytkownika zapisane.', 'success');
+          showToast('Dane użytkownika zapisane.', 'success');
           await loadTable();
           await loadUserForm();
         } catch (error) {
-          showToast(error.message, 'error');
+          showToast(getErrorMessage(error), 'error');
         }
       }
     });

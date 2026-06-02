@@ -1,6 +1,7 @@
 import { createTicket } from '../../api/ticketApi.js';
 import { escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
 import { FIELD_LIMITS } from '../../utils/constants.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 import { requireFields } from '../../utils/validators.js';
 
 export function TicketForm({ categories = [], navigate, showToast }) {
@@ -29,13 +30,20 @@ export function TicketForm({ categories = [], navigate, showToast }) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = formToObject(form);
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
     try {
       requireFields(payload, ['title', 'description', 'category']);
+      submit.disabled = true;
+      submit.textContent = 'Tworzę...';
       const ticket = await createTicket(payload);
-      showToast(`Ticket #${ticket.id} zostal utworzony.`, 'success');
+      showToast(`Ticket #${ticket.id} został utworzony.`, 'success');
       navigate(`/tickets/${ticket.id}`);
     } catch (error) {
-      showToast(error.message, 'error');
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      submit.disabled = disabled;
+      submit.textContent = originalText;
     }
   });
 

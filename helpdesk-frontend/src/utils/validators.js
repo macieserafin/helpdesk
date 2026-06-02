@@ -1,7 +1,7 @@
 export function requireFields(payload, fields) {
   const missing = fields.filter((field) => !String(payload[field] ?? '').trim());
   if (missing.length > 0) {
-    throw new Error(`Uzupelnij wymagane pola: ${missing.join(', ')}`);
+    throw new Error(`Uzupełnij wymagane pola: ${missing.join(', ')}`);
   }
 }
 

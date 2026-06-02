@@ -16,7 +16,16 @@ export function TicketPriorityForm({ currentPriority, priorities = ASSIGNABLE_PR
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    await onChange(new FormData(form).get('priority'));
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
+    submit.disabled = true;
+    submit.textContent = 'Zmieniam...';
+    try {
+      await onChange(new FormData(form).get('priority'));
+    } finally {
+      submit.disabled = false;
+      submit.textContent = originalText;
+    }
   });
 
   return form;

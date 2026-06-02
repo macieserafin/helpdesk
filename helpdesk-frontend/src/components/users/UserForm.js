@@ -48,6 +48,8 @@ export function UserForm({ user = null, mode = 'create', onSubmit }) {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
     const data = formToObject(form);
     const roles = [...form.querySelector('[name="roles"]').selectedOptions].map((option) => option.value);
     const payload = compactObject({
@@ -66,7 +68,14 @@ export function UserForm({ user = null, mode = 'create', onSubmit }) {
       })
     });
 
-    await onSubmit(payload);
+    submit.disabled = true;
+    submit.textContent = 'Zapisuję...';
+    try {
+      await onSubmit(payload);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = originalText;
+    }
   });
 
   return form;

@@ -1,5 +1,6 @@
 import { login, homeRouteFor } from '../../auth/authService.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 import { displayUserName } from '../../utils/userDisplay.js';
 
 export function LoginPage({ navigate, showToast }) {
@@ -9,7 +10,7 @@ export function LoginPage({ navigate, showToast }) {
         <div class="auth-copy">
           <p class="eyebrow">SERVICE DESK PLATFORM</p>
           <h1>Helpdesk Portal</h1>
-          <p>Panel obslugi zgloszen dla uzytkownikow, agentow i administratorow.</p>
+          <p>Panel obsługi zgłoszeń dla użytkowników, agentów i administratorów.</p>
         </div>
         <form class="login-form">
           <label>Login
@@ -36,7 +37,7 @@ export function LoginPage({ navigate, showToast }) {
       showToast(`Zalogowano jako ${displayUserName(user)}.`, 'success');
       navigate(homeRouteFor(user));
     } catch (error) {
-      showToast(error.message, 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       submit.disabled = false;
       submit.textContent = 'Zaloguj';

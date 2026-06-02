@@ -1,4 +1,4 @@
-import { htmlToElement } from '../../utils/dom.js';
+import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 
 let host;
 
@@ -11,7 +11,7 @@ export function ToastHost() {
 
 export function showToast(message, tone = 'info') {
   const container = ToastHost();
-  const toast = htmlToElement(`<div class="toast toast-${tone}">${message}</div>`);
+  const toast = htmlToElement(`<div class="toast toast-${tone}">${escapeHtml(message)}</div>`);
   container.append(toast);
   window.setTimeout(() => toast.remove(), 4200);
 }

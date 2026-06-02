@@ -44,7 +44,17 @@ export function UserTable({ users, onSelect, onToggle }) {
     button.addEventListener('click', () => onSelect(Number(button.dataset.select)));
   });
   table.querySelectorAll('[data-toggle]').forEach((button) => {
-    button.addEventListener('click', () => onToggle(Number(button.dataset.toggle), button.dataset.enabled !== 'true'));
+    button.addEventListener('click', async () => {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Zmieniam...';
+      try {
+        await onToggle(Number(button.dataset.toggle), button.dataset.enabled !== 'true');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
   });
 
   return table;

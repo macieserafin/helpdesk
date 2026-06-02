@@ -2,7 +2,7 @@ import { FIELD_LIMITS } from '../../utils/constants.js';
 import { escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
 import { requireFields } from '../../utils/validators.js';
 
-export function TicketEditForm({ ticket, categories = [], onSubmit, onCancel }) {
+export function TicketEditForm({ ticket, categories = [], onSubmit, onCancel, onError }) {
   const disabled = categories.length === 0;
   const form = htmlToElement(`
     <form class="inline-edit-form">
@@ -32,9 +32,20 @@ export function TicketEditForm({ ticket, categories = [], onSubmit, onCancel }) 
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
     const payload = formToObject(form);
-    requireFields(payload, ['title', 'description', 'category']);
-    await onSubmit(payload);
+    try {
+      requireFields(payload, ['title', 'description', 'category']);
+      submit.disabled = true;
+      submit.textContent = 'Zapisuję...';
+      await onSubmit(payload);
+    } catch (error) {
+      onError?.(error);
+    } finally {
+      submit.disabled = disabled;
+      submit.textContent = originalText;
+    }
   });
 
   form.querySelector('[data-cancel-edit]').addEventListener('click', onCancel);

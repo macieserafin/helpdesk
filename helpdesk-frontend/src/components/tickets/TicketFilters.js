@@ -70,7 +70,7 @@ export function TicketFilters({
         </label>
         <div class="filter-actions">
           <button class="button button-primary" type="submit">Filtruj</button>
-          <button class="button button-ghost" type="button" data-reset>Wyczysc</button>
+        <button class="button button-ghost" type="button" data-reset>Wyczyść</button>
         </div>
       </div>
     </form>
@@ -81,19 +81,37 @@ export function TicketFilters({
     event.currentTarget.setAttribute('aria-expanded', String(expanded));
   });
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
     const data = compactObject(formToObject(form));
-    onChange?.({
-      ...data,
-      createdFrom: normalizeDateTime(data.createdFrom),
-      createdTo: normalizeDateTime(data.createdTo)
-    });
+    submit.disabled = true;
+    submit.textContent = 'Filtruję...';
+    try {
+      await onChange?.({
+        ...data,
+        createdFrom: normalizeDateTime(data.createdFrom),
+        createdTo: normalizeDateTime(data.createdTo)
+      });
+    } finally {
+      submit.disabled = false;
+      submit.textContent = originalText;
+    }
   });
 
-  form.querySelector('[data-reset]').addEventListener('click', () => {
+  form.querySelector('[data-reset]').addEventListener('click', async () => {
+    const reset = form.querySelector('[data-reset]');
+    const originalText = reset.textContent;
     form.reset();
-    onReset?.();
+    reset.disabled = true;
+    reset.textContent = 'Czyszczę...';
+    try {
+      await onReset?.();
+    } finally {
+      reset.disabled = false;
+      reset.textContent = originalText;
+    }
   });
 
   return form;

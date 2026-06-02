@@ -76,7 +76,7 @@ export async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    const message = payload?.message || payload?.error || payload?.detail || payload || `Blad API (${response.status})`;
+    const message = payload?.message || payload?.error || payload?.detail || payload || `Błąd API (${response.status})`;
     throw new ApiError(message, response.status, payload);
   }
 
@@ -119,7 +119,7 @@ export async function requestBlob(path, options = {}) {
   }
 
   if (!response.ok) {
-    let message = `Blad API (${response.status})`;
+    let message = `Błąd API (${response.status})`;
     try {
       const payload = await parseResponse(response);
       message = payload?.message || payload?.error || payload?.detail || payload || message;

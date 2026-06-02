@@ -31,6 +31,15 @@
   background: var(--color-primary-dark);
 }
 
+.button-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.button-danger:hover {
+  background: #8f1c14;
+}
+
 .button-secondary {
   border-color: #abc2cf;
   background: #eff6f8;
@@ -456,6 +465,53 @@ textarea {
   border-color: #f0c36d;
   background: #fff8e6;
   color: #725a00;
+}
+
+.alert-error {
+  border-style: solid;
+  border-color: #efb1ac;
+  background: #fff1f0;
+  color: var(--color-danger);
+}
+
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #d6e0e8;
+  border-top-color: var(--color-primary);
+  border-radius: 999px;
+  animation: spin 0.75s linear infinite;
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgba(23, 32, 46, 0.42);
+}
+
+.confirm-dialog {
+  display: grid;
+  width: min(460px, 100%);
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-5);
+}
+
+.confirm-dialog h2,
+.confirm-dialog p {
+  margin: 0;
+}
+
+.confirm-dialog p {
+  color: var(--color-muted);
 }
 
 .pagination {

@@ -49,10 +49,30 @@ export function CategoryTable({ categories, onSelect, onDeactivate, onActivate }
     button.addEventListener('click', () => onSelect(Number(button.dataset.select)));
   });
   table.querySelectorAll('[data-deactivate]').forEach((button) => {
-    button.addEventListener('click', () => onDeactivate(Number(button.dataset.deactivate)));
+    button.addEventListener('click', async () => {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Dezaktywuję...';
+      try {
+        await onDeactivate(Number(button.dataset.deactivate));
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
   });
   table.querySelectorAll('[data-activate]').forEach((button) => {
-    button.addEventListener('click', () => onActivate(Number(button.dataset.activate)));
+    button.addEventListener('click', async () => {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Aktywuję...';
+      try {
+        await onActivate(Number(button.dataset.activate));
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
   });
 
   return table;

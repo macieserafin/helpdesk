@@ -1,8 +1,10 @@
 import { addComment } from '../../api/ticketApi.js';
 import * as attachmentApi from '../../api/attachmentApi.js';
+import { confirmAction } from '../common/ConfirmDialog.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
 import { FIELD_LIMITS } from '../../utils/constants.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 import { formatFileSize } from '../../utils/fileFormatter.js';
 import { uploadTicketAttachment, validateAttachmentFile } from './attachmentUpload.js';
 
@@ -18,7 +20,7 @@ function renderAttachment(attachment, user) {
       <div class="row-actions">
         <button class="button button-small button-secondary" type="button" data-download-attachment="${attachment.id}">Pobierz</button>
         ${canDelete ? `
-          <button class="button button-small button-ghost" type="button" data-delete-attachment="${attachment.id}">Usun</button>
+          <button class="button button-small button-ghost" type="button" data-delete-attachment="${attachment.id}">Usuń</button>
         ` : ''}
       </div>
     </article>
@@ -128,12 +130,13 @@ export function CommentPanel({ ticketId, comments, attachments = [], user, staff
         });
       }
 
-      showToast(files.length ? 'Komentarz i zalaczniki zostaly dodane.' : 'Komentarz zostal dodany.', 'success');
+      showToast(files.length ? 'Komentarz i załączniki zostały dodane.' : 'Komentarz został dodany.', 'success');
       form.reset();
-      fileSummary.textContent = 'Nie wybrano plikow.';
+      fileSummary.textContent = 'Nie wybrano plików.';
       await onSaved();
     } catch (error) {
-      showToast(commentCreated ? `Komentarz zostal dodany, ale zalacznik nie zostal wyslany: ${error.message}` : error.message, 'error');
+      const message = getErrorMessage(error);
+      showToast(commentCreated ? `Komentarz został dodany, ale załącznik nie został wysłany: ${message}` : message, 'error');
       if (commentCreated) {
         await onSaved();
       }
@@ -148,19 +151,35 @@ export function CommentPanel({ ticketId, comments, attachments = [], user, staff
       try {
         await attachmentApi.downloadAttachment(ticketId, attachment.id, attachment.fileName);
       } catch (error) {
-        showToast(error.message, 'error');
+        showToast(getErrorMessage(error), 'error');
       }
     });
   });
 
   panel.querySelectorAll('[data-delete-attachment]').forEach((button) => {
     button.addEventListener('click', async () => {
+      const attachment = attachments.find((item) => String(item.id) === button.dataset.deleteAttachment);
+      const confirmed = await confirmAction({
+        title: 'Usunąć załącznik?',
+        message: `Plik ${attachment?.fileName || `#${button.dataset.deleteAttachment}`} zostanie trwale usunięty.`,
+        confirmText: 'Usuń'
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Usuwam...';
       try {
         await attachmentApi.deleteAttachment(ticketId, button.dataset.deleteAttachment);
-        showToast('Zalacznik zostal usuniety.', 'success');
+        showToast('Załącznik został usunięty.', 'success');
         await onSaved();
       } catch (error) {
-        showToast(error.message, 'error');
+        showToast(getErrorMessage(error), 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
       }
     });
   });

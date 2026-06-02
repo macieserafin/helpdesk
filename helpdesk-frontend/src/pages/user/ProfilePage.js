@@ -2,6 +2,7 @@ import { getMe, updateProfile } from '../../api/userApi.js';
 import { PageHeader } from '../../components/common/PageHeader.js';
 import { FIELD_LIMITS } from '../../utils/constants.js';
 import { compactObject, escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
+import { getErrorMessage } from '../../utils/errorMessage.js';
 import { displayUserName } from '../../utils/userDisplay.js';
 
 export async function ProfilePage({ showToast }) {
@@ -32,11 +33,19 @@ export async function ProfilePage({ showToast }) {
 
   page.querySelector('form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
     try {
-      await updateProfile(compactObject(formToObject(event.currentTarget)));
-      showToast('Profil zostal zaktualizowany.', 'success');
+      submit.disabled = true;
+      submit.textContent = 'Zapisuję...';
+      await updateProfile(compactObject(formToObject(form)));
+      showToast('Profil został zaktualizowany.', 'success');
     } catch (error) {
-      showToast(error.message, 'error');
+      showToast(getErrorMessage(error), 'error');
+    } finally {
+      submit.disabled = false;
+      submit.textContent = originalText;
     }
   });
 

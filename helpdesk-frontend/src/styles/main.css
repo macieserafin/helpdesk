@@ -43,3 +43,9 @@ a {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -2,7 +2,7 @@ import { compactObject, escapeHtml, formToObject, htmlToElement } from '../../ut
 import { FIELD_LIMITS } from '../../utils/constants.js';
 import { requireFields } from '../../utils/validators.js';
 
-export function CategoryForm({ category = null, onSubmit, onCancel }) {
+export function CategoryForm({ category = null, onSubmit, onCancel, onError }) {
   const editing = Boolean(category);
   const form = htmlToElement(`
     <form class="card form-grid">
@@ -25,13 +25,24 @@ export function CategoryForm({ category = null, onSubmit, onCancel }) {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    const originalText = submit.textContent;
     const data = formToObject(form);
-    requireFields(data, ['name']);
-    await onSubmit(compactObject({
-      name: data.name,
-      description: data.description,
-      active: form.elements.active.checked
-    }));
+    try {
+      requireFields(data, ['name']);
+      submit.disabled = true;
+      submit.textContent = 'Zapisuję...';
+      await onSubmit(compactObject({
+        name: data.name,
+        description: data.description,
+        active: form.elements.active.checked
+      }));
+    } catch (error) {
+      onError?.(error);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = originalText;
+    }
   });
 
   form.querySelector('[data-cancel]')?.addEventListener('click', () => onCancel?.());
