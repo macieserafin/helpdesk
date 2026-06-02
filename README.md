@@ -19,19 +19,7 @@ npm install
 npm run dev
 ```
 
-Domyslny adres frontendu: `http://localhost:8080`.
-
-
-## Autoryzacja
-
-Frontend uzywa Basic Auth obslugiwanego przez Spring Security:
-
-- formularz logowania pobiera `username` i `password`,
-- dane sa sprawdzane przez `GET /api/users/me` z naglowkiem `Authorization: Basic ...`,
-- token Basic jest przechowywany w `sessionStorage`, osobno dla kazdego okna/karty,
-- requesty nie wysylaja cookies (`credentials: omit`).
-
-Dzieki temu mozna byc zalogowanym jako `user` w jednym oknie i jako `admin` w drugim, bez nadpisywania wspolnej sesji `JSESSIONID`.
+Domyslny adres frontendu: `http://127.0.0.1:5173`.
 
 ## Konta testowe
 
