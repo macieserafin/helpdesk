@@ -46,11 +46,10 @@ public class SeedConfig {
     @Order(2)
     CommandLineRunner seedCategories(CategoryService categoryService) {
         return args -> {
-            categoryService.createCategoryIfMissing("Konto", "Problemy z logowaniem, kontem i danymi uzytkownika.");
-            categoryService.createCategoryIfMissing("Uprawnienia", "Dostepy, role i widocznosc funkcji w systemie.");
-            categoryService.createCategoryIfMissing("Role", "Problemy zwiazane z rolami uzytkownikow.");
-            categoryService.createCategoryIfMissing("Zalaczniki", "Dodawanie, pobieranie i obsluga plikow.");
-            categoryService.createCategoryIfMissing("Aplikacja", "Bledy aplikacji i nieprawidlowe dzialanie panelu.");
+            categoryService.createCategoryIfMissing("Konto", "Logowanie, dane konta i ustawienia profilu uzytkownika.");
+            categoryService.createCategoryIfMissing("Uprawnienia", "Dostepy, role i widocznosc funkcji w aplikacji.");
+            categoryService.createCategoryIfMissing("Zalaczniki", "Dodawanie, pobieranie i obsluga plikow przy zgloszeniach.");
+            categoryService.createCategoryIfMissing("Aplikacja", "Bledy interfejsu, formularzy i nieprawidlowe dzialanie panelu.");
             categoryService.createCategoryIfMissing("Inne", "Zgloszenia, ktore nie pasuja do pozostalych kategorii.");
         };
     }
@@ -60,8 +59,8 @@ public class SeedConfig {
     CommandLineRunner seedTicket(TicketService ticketService) {
         return args -> {
             ticketService.createTicketIfMissing(
-                    "Problem z logowaniem",
-                    "Nie moge sie zalogowac naprawcie gnoje.",
+                    "Nie moge zalogowac sie do panelu",
+                    "Po wpisaniu poprawnych danych logowania system wraca do ekranu logowania bez komunikatu o bledzie.",
                     TicketStatus.OPEN,
                     TicketPriority.UNASSIGNED,
                     "user",
@@ -70,7 +69,7 @@ public class SeedConfig {
 
             ticketService.createTicketIfMissing(
                     "Brak dostepu do raportow",
-                    "Nie widze zakladki z raportami mimo aktywnego konta.",
+                    "Nie widze zakladki z raportami, chociaz moje konto powinno miec dostep do tej sekcji.",
                     TicketStatus.OPEN,
                     TicketPriority.UNASSIGNED,
                     "user",
@@ -78,12 +77,21 @@ public class SeedConfig {
             );
 
             ticketService.createTicketIfMissing(
-                    "Nie dziala zalacznik",
-                    "Podczas dodawania zalacznika formularz zwraca blad serwera.",
+                    "Nie moge dodac zalacznika",
+                    "Podczas dodawania pliku do zgloszenia formularz zwraca blad i nie zapisuje zalacznika.",
                     TicketStatus.OPEN,
                     TicketPriority.UNASSIGNED,
                     "user",
                     "Zalaczniki"
+            );
+
+            ticketService.createTicketIfMissing(
+                    "Formularz profilu nie zapisuje zmian",
+                    "Po aktualizacji danych profilu i zapisaniu formularza poprzednie wartosci nadal sa widoczne w panelu.",
+                    TicketStatus.OPEN,
+                    TicketPriority.UNASSIGNED,
+                    "user",
+                    "Aplikacja"
             );
         };
     }

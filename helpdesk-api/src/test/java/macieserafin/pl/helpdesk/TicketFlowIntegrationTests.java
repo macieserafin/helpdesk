@@ -1143,10 +1143,10 @@ class TicketFlowIntegrationTests {
     void shouldRestrictTicketOwnershipToUsers() throws Exception {
         String ticketJson = """
                 {
-                  "title": "Role restricted ticket %s",
+                  "title": "Ownership restricted ticket %s",
                   "description": "Ticket powinien nalezec tylko do klienta.",
                   "priority": "MEDIUM",
-                  "category": "Role"
+                  "category": "Uprawnienia"
                 }
                 """;
 
