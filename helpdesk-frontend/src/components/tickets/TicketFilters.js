@@ -59,7 +59,7 @@ export function TicketFilters({
         </label>
         ${showAgent ? `
           <label>Agent
-            <input name="agent" value="${escapeHtml(filters.agent || '')}" placeholder="username" />
+            <input name="agent" value="${escapeHtml(filters.agent || '')}" placeholder="identyfikator logowania" />
           </label>
         ` : ''}
         <label>Od

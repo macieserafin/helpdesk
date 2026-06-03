@@ -13,8 +13,8 @@ export function LoginPage({ navigate, showToast }) {
           <p>Panel obsługi zgłoszeń dla użytkowników, agentów i administratorów.</p>
         </div>
         <form class="login-form">
-          <label>Login
-            <input name="username" autocomplete="username" required />
+          <label>Identyfikator logowania lub email
+            <input name="loginIdentifier" autocomplete="off" required />
           </label>
           <label>Haslo
             <input name="password" type="password" autocomplete="current-password" required />
@@ -33,7 +33,7 @@ export function LoginPage({ navigate, showToast }) {
     submit.disabled = true;
     submit.textContent = 'Logowanie...';
     try {
-      const user = await login(form.elements.username.value, form.elements.password.value);
+      const user = await login(form.elements.loginIdentifier.value, form.elements.password.value);
       showToast(`Zalogowano jako ${displayUserName(user)}.`, 'success');
       navigate(homeRouteFor(user));
     } catch (error) {

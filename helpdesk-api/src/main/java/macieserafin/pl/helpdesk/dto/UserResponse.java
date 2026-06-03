@@ -4,16 +4,16 @@ import java.util.List;
 
 public class UserResponse {
     private Long id;
-    private String username;
+    private String loginIdentifier;
     private String email;
     private boolean enabled;
     private List<String> roles;
     private UserProfileResponse profile;
 
-    public UserResponse(Long id, String username, String email, boolean enabled, List<String> roles,
+    public UserResponse(Long id, String loginIdentifier, String email, boolean enabled, List<String> roles,
                         UserProfileResponse profile) {
         this.id = id;
-        this.username = username;
+        this.loginIdentifier = loginIdentifier;
         this.email = email;
         this.enabled = enabled;
         this.roles = roles;
@@ -31,12 +31,12 @@ public class UserResponse {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getLoginIdentifier() {
+        return loginIdentifier;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setLoginIdentifier(String loginIdentifier) {
+        this.loginIdentifier = loginIdentifier;
     }
 
     public String getEmail() {

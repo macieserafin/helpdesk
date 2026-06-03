@@ -19,15 +19,15 @@ public class SecurityUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userService.findByUsername(username)
+    public UserDetails loadUserByUsername(String loginIdentifierOrEmail) throws UsernameNotFoundException {
+        return userService.findForAuthentication(loginIdentifierOrEmail)
                 .map(this::toUserDetails)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + loginIdentifierOrEmail));
     }
 
     private UserDetails toUserDetails(User user) {
         return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
+                .withUsername(user.getLoginIdentifier())
                 .password(user.getPasswordHash())
                 .roles(user.getRoles().stream()
                         .map(Role::getName)

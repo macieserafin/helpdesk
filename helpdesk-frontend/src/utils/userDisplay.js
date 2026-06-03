@@ -1,3 +1,7 @@
+export function userLoginIdentifier(user) {
+  return user?.loginIdentifier || '';
+}
+
 export function displayUserName(user) {
   const profile = user?.profile || {};
   const fullName = [profile.firstName, profile.lastName]
@@ -5,5 +9,5 @@ export function displayUserName(user) {
     .filter(Boolean)
     .join(' ');
 
-  return fullName || user?.username || 'Uzytkownik';
+  return fullName || userLoginIdentifier(user) || 'Uzytkownik';
 }

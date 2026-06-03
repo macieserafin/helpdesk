@@ -1,5 +1,6 @@
 import { ROLES, STATUS_LABELS } from '../../utils/constants.js';
 import { htmlToElement } from '../../utils/dom.js';
+import { userLoginIdentifier } from '../../utils/userDisplay.js';
 
 const ADMIN_TRANSITIONS = {
   OPEN: ['IN_PROGRESS', 'REJECTED', 'CANCELLED'],
@@ -41,7 +42,7 @@ function agentActions(status, assignedToCurrentAgent) {
 }
 
 function userActions(status, ticket, user) {
-  if (ticket.createdBy !== user.username) {
+  if (ticket.createdBy !== userLoginIdentifier(user)) {
     return [];
   }
   if (['OPEN', 'IN_PROGRESS', 'WAITING_FOR_USER', 'RESOLVED'].includes(status)) {
@@ -55,7 +56,7 @@ function allowedActions(ticket, user) {
     return ADMIN_TRANSITIONS[ticket.status] || [];
   }
   if (hasRole(user, ROLES.AGENT)) {
-    return agentActions(ticket.status, ticket.assignedTo === user.username);
+    return agentActions(ticket.status, ticket.assignedTo === userLoginIdentifier(user));
   }
   return userActions(ticket.status, ticket, user);
 }

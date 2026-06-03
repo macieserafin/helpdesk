@@ -73,7 +73,7 @@ public class SecurityConfig {
                                                 request.getRequestURI()))))
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
-                        .usernameParameter("username")
+                        .usernameParameter("loginIdentifier")
                         .passwordParameter("password")
                         .successHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
@@ -84,7 +84,7 @@ public class SecurityConfig {
                         .failureHandler((request, response, exception) -> {
                             writeErrorResponse(response, objectMapper,
                                     ApiErrorResponse.of(HttpStatus.UNAUTHORIZED,
-                                            "Invalid username or password",
+                                            "Invalid login identifier or password",
                                             request.getRequestURI()));
                         })
                         .permitAll());

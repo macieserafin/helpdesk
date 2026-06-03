@@ -1,8 +1,8 @@
 package macieserafin.pl.helpdesk.contract;
 
 public final class ApiContract {
-    public static final int USERNAME_MIN_LENGTH = 3;
-    public static final int USERNAME_MAX_LENGTH = 50;
+    public static final int LOGIN_IDENTIFIER_MIN_LENGTH = 3;
+    public static final int LOGIN_IDENTIFIER_MAX_LENGTH = 50;
     public static final int EMAIL_MAX_LENGTH = 100;
     public static final int PASSWORD_MIN_LENGTH = 6;
     public static final int PASSWORD_MAX_LENGTH = 100;

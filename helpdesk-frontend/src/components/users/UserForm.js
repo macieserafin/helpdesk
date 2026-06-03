@@ -1,14 +1,15 @@
 import { compactObject, escapeHtml, formToObject, htmlToElement } from '../../utils/dom.js';
 import { FIELD_LIMITS } from '../../utils/constants.js';
 import { normalizeRoles } from '../../utils/validators.js';
+import { userLoginIdentifier } from '../../utils/userDisplay.js';
 
 export function UserForm({ user = null, mode = 'create', onSubmit }) {
   const profile = user?.profile || {};
   const form = htmlToElement(`
     <form class="card form-grid">
       <h2 class="span-2">${mode === 'edit' ? 'Edycja uzytkownika' : 'Nowy uzytkownik'}</h2>
-      <label>Login
-        <input name="username" minlength="${FIELD_LIMITS.username.min}" maxlength="${FIELD_LIMITS.username.max}" value="${escapeHtml(user?.username || '')}" required />
+      <label>Identyfikator logowania
+        <input name="loginIdentifier" minlength="${FIELD_LIMITS.loginIdentifier.min}" maxlength="${FIELD_LIMITS.loginIdentifier.max}" value="${escapeHtml(userLoginIdentifier(user))}" required />
       </label>
       <label>Email
         <input name="email" type="email" maxlength="${FIELD_LIMITS.email.max}" value="${escapeHtml(user?.email || '')}" required />
@@ -53,7 +54,7 @@ export function UserForm({ user = null, mode = 'create', onSubmit }) {
     const data = formToObject(form);
     const roles = [...form.querySelector('[name="roles"]').selectedOptions].map((option) => option.value);
     const payload = compactObject({
-      username: data.username,
+      loginIdentifier: data.loginIdentifier,
       email: data.email,
       password: data.password,
       enabled: form.querySelector('[name="enabled"]').checked,

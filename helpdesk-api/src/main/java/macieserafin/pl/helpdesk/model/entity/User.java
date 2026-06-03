@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import static macieserafin.pl.helpdesk.contract.ApiContract.EMAIL_MAX_LENGTH;
-import static macieserafin.pl.helpdesk.contract.ApiContract.USERNAME_MAX_LENGTH;
+import static macieserafin.pl.helpdesk.contract.ApiContract.LOGIN_IDENTIFIER_MAX_LENGTH;
 
 @Entity
 @Table(name = "users")
@@ -33,8 +33,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username", length = USERNAME_MAX_LENGTH, nullable = false, unique = true)
-    private String username;
+    @Column(name = "login_identifier", length = LOGIN_IDENTIFIER_MAX_LENGTH, nullable = false, unique = true)
+    private String loginIdentifier;
 
     @Column(name = "email", length = EMAIL_MAX_LENGTH, nullable = false, unique = true)
     private String email;
@@ -86,8 +86,8 @@ public class User {
     protected User() {
     }
 
-    public User(String username, String email, String passwordHash) {
-        this.username = username;
+    public User(String loginIdentifier, String email, String passwordHash) {
+        this.loginIdentifier = loginIdentifier;
         this.email = email;
         this.passwordHash = passwordHash;
     }
@@ -117,12 +117,12 @@ public class User {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getLoginIdentifier() {
+        return loginIdentifier;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setLoginIdentifier(String loginIdentifier) {
+        this.loginIdentifier = loginIdentifier;
     }
 
     public String getEmail() {

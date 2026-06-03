@@ -11,8 +11,8 @@ function readStoredUser() {
   }
 }
 
-export function createBasicToken(username, password) {
-  return btoa(`${username}:${password}`);
+export function createBasicToken(loginIdentifier, password) {
+  return btoa(`${loginIdentifier}:${password}`);
 }
 
 export function getAuthUser() {

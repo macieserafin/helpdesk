@@ -102,8 +102,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public Page<TicketResponse> getAgentTickets(String username, TicketFilterRequest filter, Pageable pageable) {
-        User agent = findUser(username);
+    public Page<TicketResponse> getAgentTickets(String loginIdentifier, TicketFilterRequest filter, Pageable pageable) {
+        User agent = findUser(loginIdentifier);
         checkHasAnyRole(agent, "AGENT", "ADMIN");
 
         return ticketRepository.findAll(buildTicketSpecification(filter, null), pageable)
@@ -111,8 +111,8 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse createTicket(CreateTicketRequest request, String username) {
-        User createdBy = findUser(username);
+    public TicketResponse createTicket(CreateTicketRequest request, String loginIdentifier) {
+        User createdBy = findUser(loginIdentifier);
         checkCanCreateTicket(createdBy);
 
         Category category = findActiveCategory(request.getCategory());
@@ -134,16 +134,16 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public Page<TicketResponse> getMyTickets(String username, TicketFilterRequest filter, Pageable pageable) {
-        User user = findUser(username);
+    public Page<TicketResponse> getMyTickets(String loginIdentifier, TicketFilterRequest filter, Pageable pageable) {
+        User user = findUser(loginIdentifier);
 
         return ticketRepository.findAll(buildTicketSpecification(filter, user.getId()), pageable)
                 .map(this::mapToTicketResponse);
     }
 
     @Transactional(readOnly = true)
-    public TicketResponse getTicket(Long id, String username) {
-        User user = findUser(username);
+    public TicketResponse getTicket(Long id, String loginIdentifier) {
+        User user = findUser(loginIdentifier);
         Ticket ticket = findTicket(id);
         checkCanViewTicket(user, ticket);
 
@@ -151,8 +151,8 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse updateTicket(Long id, UpdateTicketRequest request, String username) {
-        User actor = findUser(username);
+    public TicketResponse updateTicket(Long id, UpdateTicketRequest request, String loginIdentifier) {
+        User actor = findUser(loginIdentifier);
         Ticket ticket = findTicket(id);
         checkCanEditTicket(actor, ticket);
 
@@ -186,7 +186,7 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse updatePriority(Long id, UpdateTicketPriorityRequest request, String username) {
+    public TicketResponse updatePriority(Long id, UpdateTicketPriorityRequest request, String loginIdentifier) {
         if (request.getPriority() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Priority is required");
         }
@@ -194,7 +194,7 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Priority must be assigned");
         }
 
-        User agent = findUser(username);
+        User agent = findUser(loginIdentifier);
         checkCanAssignPriority(agent);
 
         Ticket ticket = findTicket(id);
@@ -213,8 +213,8 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse assignTicket(Long id, String username) {
-        User agent = findUser(username);
+    public TicketResponse assignTicket(Long id, String loginIdentifier) {
+        User agent = findUser(loginIdentifier);
         checkCanTakeTicket(agent);
 
         Ticket ticket = findTicket(id);
@@ -241,12 +241,12 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse updateStatus(Long id, TicketStatus newStatus, String username) {
+    public TicketResponse updateStatus(Long id, TicketStatus newStatus, String loginIdentifier) {
         if (newStatus == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status is required");
         }
 
-        User actor = findUser(username);
+        User actor = findUser(loginIdentifier);
         Ticket ticket = findTicket(id);
         TicketStatus oldStatus = ticket.getStatus();
 
@@ -274,8 +274,8 @@ public class TicketService {
     }
 
     @Transactional
-    public CommentResponse addComment(Long ticketId, CreateCommentRequest request, String username) {
-        User author = findUser(username);
+    public CommentResponse addComment(Long ticketId, CreateCommentRequest request, String loginIdentifier) {
+        User author = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanAddComment(author, ticket, request.isInternal());
 
@@ -302,8 +302,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(Long ticketId, String username) {
-        User user = findUser(username);
+    public List<CommentResponse> getComments(Long ticketId, String loginIdentifier) {
+        User user = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanViewTicket(user, ticket);
         boolean staff = hasAnyRole(user, "AGENT", "ADMIN");
@@ -316,8 +316,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<TicketHistoryResponse> getHistory(Long ticketId, String username) {
-        User user = findUser(username);
+    public List<TicketHistoryResponse> getHistory(Long ticketId, String loginIdentifier) {
+        User user = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanViewTicket(user, ticket);
 
@@ -328,8 +328,8 @@ public class TicketService {
     }
 
     @Transactional
-    public AttachmentResponse addAttachment(Long ticketId, Long commentId, MultipartFile file, String username) {
-        User uploadedBy = findUser(username);
+    public AttachmentResponse addAttachment(Long ticketId, Long commentId, MultipartFile file, String loginIdentifier) {
+        User uploadedBy = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanViewTicket(uploadedBy, ticket);
         validateAttachmentFile(file);
@@ -375,8 +375,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public List<AttachmentResponse> getAttachments(Long ticketId, String username) {
-        User user = findUser(username);
+    public List<AttachmentResponse> getAttachments(Long ticketId, String loginIdentifier) {
+        User user = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanViewTicket(user, ticket);
         boolean staff = isStaff(user);
@@ -391,8 +391,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public AttachmentDownload downloadAttachment(Long ticketId, Long attachmentId, String username) {
-        User user = findUser(username);
+    public AttachmentDownload downloadAttachment(Long ticketId, Long attachmentId, String loginIdentifier) {
+        User user = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanViewTicket(user, ticket);
 
@@ -413,8 +413,8 @@ public class TicketService {
     }
 
     @Transactional
-    public void deleteAttachment(Long ticketId, Long attachmentId, String username) {
-        User user = findUser(username);
+    public void deleteAttachment(Long ticketId, Long attachmentId, String loginIdentifier) {
+        User user = findUser(loginIdentifier);
         Ticket ticket = findTicket(ticketId);
         checkCanViewTicket(user, ticket);
 
@@ -436,7 +436,7 @@ public class TicketService {
     }
 
     private TicketResponse mapToTicketResponse(Ticket ticket) {
-        String assignedTo = ticket.getAssignedTo() == null ? null : ticket.getAssignedTo().getUsername();
+        String assignedTo = ticket.getAssignedTo() == null ? null : ticket.getAssignedTo().getLoginIdentifier();
 
         return new TicketResponse(
                 ticket.getId(),
@@ -444,7 +444,7 @@ public class TicketService {
                 ticket.getDescription(),
                 ticket.getStatus(),
                 ticket.getPriority(),
-                ticket.getCreatedBy().getUsername(),
+                ticket.getCreatedBy().getLoginIdentifier(),
                 assignedTo,
                 ticket.getCategory().getName(),
                 ticket.getCreatedAt(),
@@ -458,7 +458,7 @@ public class TicketService {
         return new CommentResponse(
                 comment.getId(),
                 comment.getTicket().getId(),
-                comment.getAuthor().getUsername(),
+                comment.getAuthor().getLoginIdentifier(),
                 comment.getContent(),
                 comment.isInternal(),
                 comment.getCreatedAt(),
@@ -467,13 +467,13 @@ public class TicketService {
     }
 
     private TicketHistoryResponse mapToTicketHistoryResponse(TicketHistory history) {
-        String oldAssignedTo = history.getOldAssignedTo() == null ? null : history.getOldAssignedTo().getUsername();
-        String newAssignedTo = history.getNewAssignedTo() == null ? null : history.getNewAssignedTo().getUsername();
+        String oldAssignedTo = history.getOldAssignedTo() == null ? null : history.getOldAssignedTo().getLoginIdentifier();
+        String newAssignedTo = history.getNewAssignedTo() == null ? null : history.getNewAssignedTo().getLoginIdentifier();
 
         return new TicketHistoryResponse(
                 history.getId(),
                 history.getTicket().getId(),
-                history.getChangedBy().getUsername(),
+                history.getChangedBy().getLoginIdentifier(),
                 history.getActionType(),
                 history.getOldStatus(),
                 history.getNewStatus(),
@@ -493,7 +493,7 @@ public class TicketService {
                 attachment.getId(),
                 attachment.getTicket().getId(),
                 commentId,
-                attachment.getUploadedBy().getUsername(),
+                attachment.getUploadedBy().getLoginIdentifier(),
                 attachment.getFileName(),
                 attachment.getContentType(),
                 attachment.getFileSize(),
@@ -503,10 +503,10 @@ public class TicketService {
 
     @Transactional
     public void createTicketIfMissing(String title, String description, TicketStatus status, TicketPriority priority,
-                                      String createdByUsername, String categoryName) {
+                                      String createdByLoginIdentifier, String categoryName) {
         if (!ticketRepository.existsByTitle(title)) {
-            var createdBy = userRepository.findByUsername(createdByUsername)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + createdByUsername));
+            var createdBy = userRepository.findByLoginIdentifier(createdByLoginIdentifier)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + createdByLoginIdentifier));
             checkCanCreateTicket(createdBy);
 
             Category category = categoryRepository.findByNameIgnoreCaseAndActiveTrue(
@@ -658,9 +658,10 @@ public class TicketService {
                         "Attachment not found: " + attachmentId));
     }
 
-    private User findUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + username));
+    private User findUser(String loginIdentifier) {
+        return userRepository.findByLoginIdentifier(loginIdentifier)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User not found: " + loginIdentifier));
     }
 
     private Specification<Ticket> buildTicketSpecification(TicketFilterRequest filter, Long createdById) {
@@ -696,7 +697,7 @@ public class TicketService {
         if (hasText(filter.getAgent())) {
             String agent = filter.getAgent().trim().toLowerCase();
             specification = specification.and((root, query, criteriaBuilder) ->
-                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("assignedTo").get("username")), agent));
+                    criteriaBuilder.equal(criteriaBuilder.lower(root.get("assignedTo").get("loginIdentifier")), agent));
         }
 
         if (filter.getCreatedFrom() != null) {

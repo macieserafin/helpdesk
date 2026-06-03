@@ -1,6 +1,7 @@
 import { RoleBadges } from '../common/Badges.js';
 import { EmptyState } from '../common/Feedback.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
+import { userLoginIdentifier } from '../../utils/userDisplay.js';
 
 export function UserTable({ users, onSelect, onToggle }) {
   if (!users?.length) {
@@ -24,7 +25,7 @@ export function UserTable({ users, onSelect, onToggle }) {
           ${users.map((user) => `
             <tr>
               <td data-label="ID">#${user.id}</td>
-              <td data-label="Login"><button class="link-button" data-select="${user.id}">${escapeHtml(user.username)}</button></td>
+              <td data-label="Login"><button class="link-button" data-select="${user.id}">${escapeHtml(userLoginIdentifier(user))}</button></td>
               <td data-label="Email">${escapeHtml(user.email)}</td>
               <td data-label="Role">${RoleBadges(user.roles)}</td>
               <td data-label="Status"><span class="badge ${user.enabled ? 'status-open' : 'status-cancelled'}">${user.enabled ? 'Aktywny' : 'Nieaktywny'}</span></td>

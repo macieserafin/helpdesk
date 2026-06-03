@@ -44,13 +44,29 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+    public Optional<User> findByLoginIdentifier(String loginIdentifier) {
+        return userRepository.findByLoginIdentifier(loginIdentifier);
     }
 
     @Transactional(readOnly = true)
-    public UserResponse findCurrentUser(String username) {
-        return mapToUserResponse(findUser(username));
+    public Optional<User> findForAuthentication(String loginIdentifierOrEmail) {
+        if (!hasText(loginIdentifierOrEmail)) {
+            return Optional.empty();
+        }
+
+        String value = loginIdentifierOrEmail.trim();
+        Optional<User> byLoginIdentifier = userRepository.findByLoginIdentifier(value);
+        if (byLoginIdentifier.isPresent()) {
+            return byLoginIdentifier;
+        }
+
+        return userRepository.findByEmailIgnoreCase(value)
+                .filter(this::canLoginWithEmail);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse findCurrentUser(String loginIdentifier) {
+        return mapToUserResponse(findUser(loginIdentifier));
     }
 
     @Transactional(readOnly = true)
@@ -64,18 +80,19 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
 
-        String username = requireText(request.getUsername(), "Username is required");
+        String loginIdentifier = requireText(request.getLoginIdentifier(), "Login identifier is required");
         String email = requireText(request.getEmail(), "Email is required");
         String password = requireText(request.getPassword(), "Password is required");
 
-        if (userRepository.existsByUsername(username)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists: " + username);
+        if (userRepository.existsByLoginIdentifier(loginIdentifier)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Login identifier already exists: " + loginIdentifier);
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + email);
         }
 
-        User user = new User(username, email, passwordEncoder.encode(password));
+        User user = new User(loginIdentifier, email, passwordEncoder.encode(password));
         user.setEnabled(request.getEnabled() == null || request.getEnabled());
         setRoles(user, request.getRoles());
         user.setProfile(mapToUserProfile(request.getProfile()));
@@ -90,7 +107,7 @@ public class UserService {
         }
 
         CreateUserRequest createUserRequest = new CreateUserRequest();
-        createUserRequest.setUsername(request.getUsername());
+        createUserRequest.setLoginIdentifier(request.getLoginIdentifier());
         createUserRequest.setEmail(request.getEmail());
         createUserRequest.setPassword(request.getPassword());
         createUserRequest.setEnabled(true);
@@ -108,20 +125,20 @@ public class UserService {
 
         User user = findUser(id);
 
-        if (request.getUsername() != null) {
-            String username = requireText(request.getUsername(), "Username is required");
-            userRepository.findByUsername(username)
+        if (request.getLoginIdentifier() != null) {
+            String loginIdentifier = requireText(request.getLoginIdentifier(), "Login identifier is required");
+            userRepository.findByLoginIdentifier(loginIdentifier)
                     .filter(existing -> !existing.getId().equals(id))
                     .ifPresent(existing -> {
                         throw new ResponseStatusException(HttpStatus.CONFLICT,
-                                "Username already exists: " + username);
+                                "Login identifier already exists: " + loginIdentifier);
                     });
-            user.setUsername(username);
+            user.setLoginIdentifier(loginIdentifier);
         }
 
         if (request.getEmail() != null) {
             String email = requireText(request.getEmail(), "Email is required");
-            userRepository.findByEmail(email)
+            userRepository.findByEmailIgnoreCase(email)
                     .filter(existing -> !existing.getId().equals(id))
                     .ifPresent(existing -> {
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + email);
@@ -150,8 +167,8 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse updateCurrentUserProfile(String username, UserProfileRequest request) {
-        User user = findUser(username);
+    public UserResponse updateCurrentUserProfile(String loginIdentifier, UserProfileRequest request) {
+        User user = findUser(loginIdentifier);
         updateProfile(user, request);
 
         return mapToUserResponse(user);
@@ -174,9 +191,9 @@ public class UserService {
     }
 
     @Transactional
-    public void createUserIfMissing(String username, String email, String rawPassword, String roleName,
+    public void createUserIfMissing(String loginIdentifier, String email, String rawPassword, String roleName,
                                     UserProfile profile) {
-        Optional<User> existingUser = userRepository.findByUsername(username);
+        Optional<User> existingUser = userRepository.findByLoginIdentifier(loginIdentifier);
         if (existingUser.isPresent()) {
             User user = existingUser.get();
             if (user.getProfile() == null && profile != null) {
@@ -190,7 +207,7 @@ public class UserService {
                 .orElseGet(() -> roleRepository.save(new Role(roleName)));
 
         User user = new User(
-                username,
+                loginIdentifier,
                 email,
                 passwordEncoder.encode(rawPassword)
         );
@@ -209,7 +226,7 @@ public class UserService {
 
         return new UserResponse(
                 user.getId(),
-                user.getUsername(),
+                user.getLoginIdentifier(),
                 user.getEmail(),
                 user.isEnabled(),
                 roleNames,
@@ -247,9 +264,18 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + id));
     }
 
-    private User findUser(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + username));
+    private User findUser(String loginIdentifier) {
+        return userRepository.findByLoginIdentifier(loginIdentifier)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User not found: " + loginIdentifier));
+    }
+
+    private boolean canLoginWithEmail(User user) {
+        return hasRole(user, "USER") && !hasRole(user, "AGENT") && !hasRole(user, "ADMIN");
+    }
+
+    private boolean hasRole(User user, String roleName) {
+        return user.getRoles().stream().anyMatch(role -> role.getName().equals(roleName));
     }
 
     private void setRoles(User user, List<String> roleNames) {

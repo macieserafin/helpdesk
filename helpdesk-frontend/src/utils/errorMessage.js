@@ -2,7 +2,8 @@ const API_MESSAGE_TRANSLATIONS = {
   'Validation failed': 'Popraw błędy w formularzu.',
   'Invalid request body': 'Nieprawidłowe dane żądania.',
   'Unexpected error': 'Wystąpił błąd serwera. Spróbuj ponownie później.',
-  'Bad credentials': 'Nieprawidłowy login lub hasło.'
+  'Bad credentials': 'Nieprawidłowy login lub hasło.',
+  'Invalid login identifier or password': 'Nieprawidłowy login lub hasło.'
 };
 
 const STATUS_FALLBACKS = {

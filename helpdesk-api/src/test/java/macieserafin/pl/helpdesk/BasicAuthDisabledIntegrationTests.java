@@ -35,10 +35,10 @@ class BasicAuthDisabledIntegrationTests {
 
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", "user")
+                        .param("loginIdentifier", "user")
                         .param("password", "user123"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user"))
+                .andExpect(jsonPath("$.loginIdentifier").value("user"))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
@@ -47,6 +47,6 @@ class BasicAuthDisabledIntegrationTests {
         mockMvc.perform(get("/api/users/me")
                         .session(session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user"));
+                .andExpect(jsonPath("$.loginIdentifier").value("user"));
     }
 }

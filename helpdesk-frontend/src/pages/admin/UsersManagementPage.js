@@ -6,6 +6,7 @@ import { UserForm } from '../../components/users/UserForm.js';
 import { UserTable } from '../../components/users/UserTable.js';
 import { htmlToElement } from '../../utils/dom.js';
 import { getErrorMessage } from '../../utils/errorMessage.js';
+import { userLoginIdentifier } from '../../utils/userDisplay.js';
 
 export async function UsersManagementPage({ showToast }) {
   const page = htmlToElement(`
@@ -39,7 +40,7 @@ export async function UsersManagementPage({ showToast }) {
           if (!enabled) {
             const confirmed = await confirmAction({
               title: 'Dezaktywować konto?',
-              message: `Konto ${user?.username || `#${id}`} nie będzie mogło się zalogować do systemu.`,
+              message: `Konto ${userLoginIdentifier(user) || `#${id}`} nie będzie mogło się zalogować do systemu.`,
               confirmText: 'Dezaktywuj'
             });
             if (!confirmed) {

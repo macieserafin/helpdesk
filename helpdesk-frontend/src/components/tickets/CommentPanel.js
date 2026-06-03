@@ -6,10 +6,11 @@ import { FIELD_LIMITS } from '../../utils/constants.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 import { getErrorMessage } from '../../utils/errorMessage.js';
 import { formatFileSize } from '../../utils/fileFormatter.js';
+import { userLoginIdentifier } from '../../utils/userDisplay.js';
 import { uploadTicketAttachment, validateAttachmentFile } from './attachmentUpload.js';
 
 function renderAttachment(attachment, user) {
-  const canDelete = attachment.uploadedBy === user.username || user.roles?.includes('ADMIN');
+  const canDelete = attachment.uploadedBy === userLoginIdentifier(user) || user.roles?.includes('ADMIN');
 
   return `
     <article class="comment-attachment-item">

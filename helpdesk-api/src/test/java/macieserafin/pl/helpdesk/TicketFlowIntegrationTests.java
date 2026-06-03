@@ -41,10 +41,10 @@ class TicketFlowIntegrationTests {
     void shouldLoginWithFormEndpointAndUseSession() throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", "user")
+                        .param("loginIdentifier", "user")
                         .param("password", "user123"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user"))
+                .andExpect(jsonPath("$.loginIdentifier").value("user"))
                 .andExpect(jsonPath("$.email").value("user@example.com"))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
                 .andReturn();
@@ -55,19 +55,42 @@ class TicketFlowIntegrationTests {
         mockMvc.perform(get("/api/users/me")
                         .session(session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user"));
+                .andExpect(jsonPath("$.loginIdentifier").value("user"));
+    }
+
+    @Test
+    void shouldAuthenticateEndUserWithLoginIdentifierOrEmailAndRejectStaffEmail() throws Exception {
+        mockMvc.perform(get("/api/users/me")
+                        .with(httpBasic("user", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginIdentifier").value("user"))
+                .andExpect(jsonPath("$.email").value("user@example.com"));
+
+        mockMvc.perform(get("/api/users/me")
+                        .with(httpBasic("user@example.com", "user123")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginIdentifier").value("user"))
+                .andExpect(jsonPath("$.email").value("user@example.com"));
+
+        mockMvc.perform(get("/api/users/me")
+                        .with(httpBasic("agent@example.com", "agent123")))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/users/me")
+                        .with(httpBasic("admin@example.com", "admin123")))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void shouldRejectInvalidFormLogin() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", "user")
+                        .param("loginIdentifier", "user")
                         .param("password", "wrong-password"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.message").value("Invalid username or password"))
+                .andExpect(jsonPath("$.message").value("Invalid login identifier or password"))
                 .andExpect(jsonPath("$.path").value("/api/auth/login"))
                 .andExpect(jsonPath("$.errors.length()").value(0));
     }
@@ -75,14 +98,14 @@ class TicketFlowIntegrationTests {
     @Test
     void shouldRegisterUserAndLoginWithFormEndpoint() throws Exception {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        String username = "registered-" + suffix;
-        String email = username + "@example.com";
+        String loginIdentifier = "registered-" + suffix;
+        String email = loginIdentifier + "@example.com";
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "%s",
+                                  "loginIdentifier": "%s",
                                   "email": "%s",
                                   "password": "registered123",
                                   "profile": {
@@ -91,9 +114,9 @@ class TicketFlowIntegrationTests {
                                     "city": "Lodz"
                                   }
                                 }
-                                """.formatted(username, email)))
+                                """.formatted(loginIdentifier, email)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier))
                 .andExpect(jsonPath("$.email").value(email))
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.roles[0]").value("USER"))
@@ -102,10 +125,10 @@ class TicketFlowIntegrationTests {
 
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", username)
+                        .param("loginIdentifier", loginIdentifier)
                         .param("password", "registered123"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
@@ -118,12 +141,44 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldRegisterWithLoginIdentifierAndRejectDuplicateEmailIgnoringCase() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String loginIdentifier = "new-login-" + suffix;
+        String email = loginIdentifier + "@example.com";
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "loginIdentifier": "%s",
+                                  "email": "%s",
+                                  "password": "registered123"
+                                }
+                                """.formatted(loginIdentifier, email)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier))
+                .andExpect(jsonPath("$.email").value(email));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "loginIdentifier": "%s-other",
+                                  "email": "%s",
+                                  "password": "registered123"
+                                }
+                                """.formatted(loginIdentifier, email.toUpperCase())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already exists: " + email.toUpperCase()));
+    }
+
+    @Test
     void shouldRejectInvalidRequestBodies() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "ab",
+                                  "loginIdentifier": "ab",
                                   "email": "invalid-email",
                                   "password": "123"
                                 }
@@ -266,15 +321,15 @@ class TicketFlowIntegrationTests {
     @Test
     void shouldManageUsersViaUserEndpoints() throws Exception {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        String username = "managed-" + suffix;
-        String email = username + "@example.com";
+        String loginIdentifier = "managed-" + suffix;
+        String email = loginIdentifier + "@example.com";
 
         String createdUserBody = mockMvc.perform(post("/api/admin/users")
                         .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "%s",
+                                  "loginIdentifier": "%s",
                                   "email": "%s",
                                   "password": "managed123",
                                   "roles": ["USER"],
@@ -284,9 +339,9 @@ class TicketFlowIntegrationTests {
                                     "city": "Poznan"
                                   }
                                 }
-                                """.formatted(username, email)))
+                                """.formatted(loginIdentifier, email)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier))
                 .andExpect(jsonPath("$.email").value(email))
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.profile.firstName").value("Managed"))
@@ -302,7 +357,7 @@ class TicketFlowIntegrationTests {
         mockMvc.perform(get("/api/admin/users/{id}", userId)
                         .with(httpBasic("admin", "admin123")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(username));
+                .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier));
 
         String updatedUserBody = mockMvc.perform(patch("/api/admin/users/{id}", userId)
                         .with(httpBasic("admin", "admin123"))
@@ -329,12 +384,12 @@ class TicketFlowIntegrationTests {
         assertThat(containsText(updatedUser.get("roles"), "AGENT")).isTrue();
 
         mockMvc.perform(get("/api/users/me")
-                        .with(httpBasic(username, "managed123")))
+                        .with(httpBasic(loginIdentifier, "managed123")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(username));
+                .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier));
 
         mockMvc.perform(patch("/api/users/me/profile")
-                        .with(httpBasic(username, "managed123"))
+                        .with(httpBasic(loginIdentifier, "managed123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -570,12 +625,12 @@ class TicketFlowIntegrationTests {
     @Test
     void shouldRejectTicketEditWithoutPermissionForTerminalTicketOrInvalidCategory() throws Exception {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        String otherUsername = "other-" + suffix;
+        String otherLoginIdentifier = "other-" + suffix;
         String otherPassword = "other123";
-        registerUser(otherUsername, otherPassword);
+        registerUser(otherLoginIdentifier, otherPassword);
 
         Long otherTicketId = createTicket(
-                otherUsername,
+                otherLoginIdentifier,
                 otherPassword,
                 "Other ticket " + suffix,
                 "Ticket innego uzytkownika.",
@@ -1245,12 +1300,12 @@ class TicketFlowIntegrationTests {
         return false;
     }
 
-    private void registerUser(String username, String password) throws Exception {
+    private void registerUser(String loginIdentifier, String password) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "%s",
+                                  "loginIdentifier": "%s",
                                   "email": "%s@example.com",
                                   "password": "%s",
                                   "profile": {
@@ -1259,14 +1314,14 @@ class TicketFlowIntegrationTests {
                                     "city": "Lodz"
                                   }
                                 }
-                                """.formatted(username, username, password)))
+                                """.formatted(loginIdentifier, loginIdentifier, password)))
                 .andExpect(status().isCreated());
     }
 
-    private Long createTicket(String username, String password, String title, String description, String category)
+    private Long createTicket(String loginIdentifier, String password, String title, String description, String category)
             throws Exception {
         String createdTicketBody = mockMvc.perform(post("/api/tickets")
-                        .with(httpBasic(username, password))
+                        .with(httpBasic(loginIdentifier, password))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -1283,14 +1338,14 @@ class TicketFlowIntegrationTests {
         return objectMapper.readTree(createdTicketBody).get("id").asLong();
     }
 
-    private JsonNode findUser(String responseBody, String username) throws Exception {
+    private JsonNode findUser(String responseBody, String loginIdentifier) throws Exception {
         for (JsonNode user : objectMapper.readTree(responseBody)) {
-            if (user.get("username").asText().equals(username)) {
+            if (user.get("loginIdentifier").asText().equals(loginIdentifier)) {
                 return user;
             }
         }
 
-        throw new AssertionError("User not found in response: " + username);
+        throw new AssertionError("User not found in response: " + loginIdentifier);
     }
 
     private boolean containsText(JsonNode arrayNode, String value) {

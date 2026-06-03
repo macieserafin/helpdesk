@@ -2,8 +2,8 @@ import * as authApi from '../api/authApi.js';
 import { clearAuthUser, createBasicToken, getAuthUser, setAuthSession, setAuthUser } from '../state/authStore.js';
 import { ROLES } from '../utils/constants.js';
 
-export async function login(username, password) {
-  const token = createBasicToken(username, password);
+export async function login(loginIdentifier, password) {
+  const token = createBasicToken(loginIdentifier, password);
   const user = await authApi.loginWithBasic(`Basic ${token}`);
   setAuthSession(user, token);
   return user;

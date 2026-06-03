@@ -14,6 +14,7 @@ import { ROLES } from '../../utils/constants.js';
 import { formatDateTime } from '../../utils/dateFormatter.js';
 import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 import { getErrorMessage } from '../../utils/errorMessage.js';
+import { userLoginIdentifier } from '../../utils/userDisplay.js';
 
 export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   const page = htmlToElement('<section class="page stack"><div class="stack" data-content></div></section>');
@@ -32,9 +33,10 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
     ]);
     const staff = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
     const admin = hasRole(user, ROLES.ADMIN);
-    const assignedToCurrentAgent = ticket.assignedTo === user.username;
+    const currentLoginIdentifier = userLoginIdentifier(user);
+    const assignedToCurrentAgent = ticket.assignedTo === currentLoginIdentifier;
     const terminal = ['CLOSED', 'REJECTED', 'CANCELLED'].includes(ticket.status);
-    const canEdit = !terminal && (ticket.createdBy === user.username || admin);
+    const canEdit = !terminal && (ticket.createdBy === currentLoginIdentifier || admin);
     if (editing && canEdit && categories === null) {
       categories = await categoryApi.getActiveCategories();
     }
@@ -152,7 +154,7 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
         }
       }
     }));
-    if (!staff && ticket.status === 'RESOLVED' && ticket.createdBy === user.username) {
+    if (!staff && ticket.status === 'RESOLVED' && ticket.createdBy === currentLoginIdentifier) {
       const close = htmlToElement('<button class="button button-primary" type="button">Zamknij ticket</button>');
       close.addEventListener('click', async () => {
         const originalText = close.textContent;
