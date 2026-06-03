@@ -1,5 +1,6 @@
 import { ROLES } from '../utils/constants.js';
 import { LoginPage } from '../pages/auth/LoginPage.js';
+import { RegisterPage } from '../pages/auth/RegisterPage.js';
 import { UserDashboardPage } from '../pages/user/UserDashboardPage.js';
 import { MyTicketsPage } from '../pages/user/MyTicketsPage.js';
 import { CreateTicketPage } from '../pages/user/CreateTicketPage.js';
@@ -16,6 +17,7 @@ import { NotFoundPage } from '../pages/shared/NotFoundPage.js';
 
 export const routes = [
   { path: '/login', public: true, page: LoginPage },
+  { path: '/register', public: true, page: RegisterPage },
   { path: '/user', roles: [ROLES.USER], page: UserDashboardPage },
   { path: '/user/tickets', roles: [ROLES.USER], page: MyTicketsPage },
   { path: '/user/tickets/new', roles: [ROLES.USER], page: CreateTicketPage },

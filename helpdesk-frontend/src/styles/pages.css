@@ -37,6 +37,17 @@
   gap: 16px;
 }
 
+.auth-switch {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.auth-switch a {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
 .split-view {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);

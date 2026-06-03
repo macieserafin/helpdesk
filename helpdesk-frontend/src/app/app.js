@@ -24,7 +24,7 @@ async function render() {
   const route = matchRoute(path);
 
   try {
-    if (route.public && path === '/login' && currentUser()) {
+    if (route.public && ['/login', '/register'].includes(path) && currentUser()) {
       navigate(homeRouteFor(currentUser()));
       return;
     }

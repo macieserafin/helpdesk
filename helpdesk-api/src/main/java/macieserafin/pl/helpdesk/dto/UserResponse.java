@@ -6,15 +6,17 @@ public class UserResponse {
     private Long id;
     private String loginIdentifier;
     private String email;
+    private boolean emailVerified;
     private boolean enabled;
     private List<String> roles;
     private UserProfileResponse profile;
 
-    public UserResponse(Long id, String loginIdentifier, String email, boolean enabled, List<String> roles,
-                        UserProfileResponse profile) {
+    public UserResponse(Long id, String loginIdentifier, String email, boolean emailVerified, boolean enabled,
+                        List<String> roles, UserProfileResponse profile) {
         this.id = id;
         this.loginIdentifier = loginIdentifier;
         this.email = email;
+        this.emailVerified = emailVerified;
         this.enabled = enabled;
         this.roles = roles;
         this.profile = profile;
@@ -45,6 +47,14 @@ public class UserResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     public boolean isEnabled() {

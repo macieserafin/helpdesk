@@ -108,16 +108,15 @@ class TicketFlowIntegrationTests {
                                   "loginIdentifier": "%s",
                                   "email": "%s",
                                   "password": "registered123",
-                                  "profile": {
-                                    "firstName": "Registered",
-                                    "lastName": "User",
-                                    "city": "Lodz"
-                                  }
+                                  "confirmPassword": "registered123",
+                                  "firstName": "Registered",
+                                  "lastName": "User"
                                 }
                                 """.formatted(loginIdentifier, email)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.loginIdentifier").value(loginIdentifier))
                 .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.emailVerified").value(false))
                 .andExpect(jsonPath("$.enabled").value(true))
                 .andExpect(jsonPath("$.roles[0]").value("USER"))
                 .andExpect(jsonPath("$.profile.firstName").value("Registered"))
@@ -152,7 +151,8 @@ class TicketFlowIntegrationTests {
                                 {
                                   "loginIdentifier": "%s",
                                   "email": "%s",
-                                  "password": "registered123"
+                                  "password": "registered123",
+                                  "confirmPassword": "registered123"
                                 }
                                 """.formatted(loginIdentifier, email)))
                 .andExpect(status().isCreated())
@@ -165,11 +165,44 @@ class TicketFlowIntegrationTests {
                                 {
                                   "loginIdentifier": "%s-other",
                                   "email": "%s",
-                                  "password": "registered123"
+                                  "password": "registered123",
+                                  "confirmPassword": "registered123"
                                 }
                                 """.formatted(loginIdentifier, email.toUpperCase())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Email already exists: " + email.toUpperCase()));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "loginIdentifier": "%s",
+                                  "email": "%s-other@example.com",
+                                  "password": "registered123",
+                                  "confirmPassword": "registered123"
+                                }
+                                """.formatted(loginIdentifier, loginIdentifier)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Login identifier already exists: " + loginIdentifier));
+    }
+
+    @Test
+    void shouldRejectRegistrationWhenPasswordsDoNotMatch() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String loginIdentifier = "password-check-" + suffix;
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "loginIdentifier": "%s",
+                                  "email": "%s@example.com",
+                                  "password": "registered123",
+                                  "confirmPassword": "different123"
+                                }
+                                """.formatted(loginIdentifier, loginIdentifier)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Passwords do not match"));
     }
 
     @Test
@@ -180,7 +213,8 @@ class TicketFlowIntegrationTests {
                                 {
                                   "loginIdentifier": "ab",
                                   "email": "invalid-email",
-                                  "password": "123"
+                                  "password": "123",
+                                  "confirmPassword": "123"
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -188,7 +222,7 @@ class TicketFlowIntegrationTests {
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.path").value("/api/auth/register"))
-                .andExpect(jsonPath("$.errors.length()").value(3));
+                .andExpect(jsonPath("$.errors.length()").value(4));
 
         mockMvc.perform(post("/api/tickets")
                         .with(httpBasic("user", "user123"))
@@ -1308,13 +1342,11 @@ class TicketFlowIntegrationTests {
                                   "loginIdentifier": "%s",
                                   "email": "%s@example.com",
                                   "password": "%s",
-                                  "profile": {
-                                    "firstName": "Other",
-                                    "lastName": "User",
-                                    "city": "Lodz"
-                                  }
+                                  "confirmPassword": "%s",
+                                  "firstName": "Other",
+                                  "lastName": "User"
                                 }
-                                """.formatted(loginIdentifier, loginIdentifier, password)))
+                                """.formatted(loginIdentifier, loginIdentifier, password, password)))
                 .andExpect(status().isCreated());
     }
 

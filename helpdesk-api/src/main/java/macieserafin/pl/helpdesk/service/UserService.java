@@ -105,6 +105,10 @@ public class UserService {
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
+        if (!requireText(request.getPassword(), "Password is required")
+                .equals(requireText(request.getConfirmPassword(), "Confirm password is required"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Passwords do not match");
+        }
 
         CreateUserRequest createUserRequest = new CreateUserRequest();
         createUserRequest.setLoginIdentifier(request.getLoginIdentifier());
@@ -112,7 +116,7 @@ public class UserService {
         createUserRequest.setPassword(request.getPassword());
         createUserRequest.setEnabled(true);
         createUserRequest.setRoles(List.of("USER"));
-        createUserRequest.setProfile(request.getProfile());
+        createUserRequest.setProfile(registrationProfile(request));
 
         return createUser(createUserRequest);
     }
@@ -228,6 +232,7 @@ public class UserService {
                 user.getId(),
                 user.getLoginIdentifier(),
                 user.getEmail(),
+                user.isEmailVerified(),
                 user.isEnabled(),
                 roleNames,
                 mapToUserProfileResponse(user.getProfile())
@@ -328,6 +333,17 @@ public class UserService {
                 trimToNull(request.getStreetAddress()),
                 trimToNull(request.getPostalCode())
         );
+    }
+
+    private UserProfileRequest registrationProfile(RegisterUserRequest request) {
+        if (!hasText(request.getFirstName()) && !hasText(request.getLastName())) {
+            return null;
+        }
+
+        UserProfileRequest profile = new UserProfileRequest();
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        return profile;
     }
 
     private void updateProfile(User user, UserProfileRequest request) {

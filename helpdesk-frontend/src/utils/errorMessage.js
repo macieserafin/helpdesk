@@ -3,7 +3,8 @@ const API_MESSAGE_TRANSLATIONS = {
   'Invalid request body': 'Nieprawidłowe dane żądania.',
   'Unexpected error': 'Wystąpił błąd serwera. Spróbuj ponownie później.',
   'Bad credentials': 'Nieprawidłowy login lub hasło.',
-  'Invalid login identifier or password': 'Nieprawidłowy login lub hasło.'
+  'Invalid login identifier or password': 'Nieprawidłowy login lub hasło.',
+  'Passwords do not match': 'Hasła muszą być takie same.'
 };
 
 const STATUS_FALLBACKS = {
@@ -15,6 +16,11 @@ const STATUS_FALLBACKS = {
   413: 'Przesyłany plik jest za duży.',
   500: 'Wystąpił błąd serwera. Spróbuj ponownie później.'
 };
+
+const MESSAGE_PREFIX_TRANSLATIONS = [
+  ['Login identifier already exists:', 'Ten identyfikator logowania jest już zajęty.'],
+  ['Email already exists:', 'Ten adres email jest już używany.']
+];
 
 function formatFieldErrors(details) {
   const errors = details?.errors;
@@ -37,6 +43,10 @@ export function getErrorMessage(error, fallback = 'Nie udało się wykonać oper
   const message = String(error?.message || '').trim();
   if (message && API_MESSAGE_TRANSLATIONS[message]) {
     return API_MESSAGE_TRANSLATIONS[message];
+  }
+  const prefixTranslation = MESSAGE_PREFIX_TRANSLATIONS.find(([prefix]) => message.startsWith(prefix));
+  if (prefixTranslation) {
+    return prefixTranslation[1];
   }
 
   if (message && !['Failed to fetch', 'NetworkError'].includes(message)) {

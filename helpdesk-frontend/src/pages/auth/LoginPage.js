@@ -20,6 +20,7 @@ export function LoginPage({ navigate, showToast }) {
             <input name="password" type="password" autocomplete="current-password" required />
           </label>
           <button class="button button-primary" type="submit">Zaloguj</button>
+          <p class="auth-switch">Nie masz konta? <a href="#/register">Utwórz konto użytkownika</a></p>
         </form>
       </section>
     </main>
