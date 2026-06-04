@@ -54,6 +54,7 @@ public class SeedConfig {
         };
     }
 
+    /*
     @Bean
     @Order(3)
     CommandLineRunner seedTicket(TicketService ticketService) {
@@ -94,5 +95,5 @@ public class SeedConfig {
                     "Aplikacja"
             );
         };
-    }
+    }*/
 }
