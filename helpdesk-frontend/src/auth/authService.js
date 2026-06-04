@@ -1,11 +1,10 @@
 import * as authApi from '../api/authApi.js';
-import { clearAuthUser, createBasicToken, getAuthUser, setAuthSession, setAuthUser } from '../state/authStore.js';
+import { clearAuthUser, getAuthUser, setAuthUser } from '../state/authStore.js';
 import { ROLES } from '../utils/constants.js';
 
 export async function login(loginIdentifier, password) {
-  const token = createBasicToken(loginIdentifier, password);
-  const user = await authApi.loginWithBasic(`Basic ${token}`);
-  setAuthSession(user, token);
+  const user = await authApi.login({ loginIdentifier, password });
+  setAuthUser(user);
   return user;
 }
 
@@ -16,7 +15,11 @@ export async function refreshCurrentUser() {
 }
 
 export async function logout() {
-  clearAuthUser();
+  try {
+    await authApi.logout();
+  } finally {
+    clearAuthUser();
+  }
 }
 
 export function currentUser() {

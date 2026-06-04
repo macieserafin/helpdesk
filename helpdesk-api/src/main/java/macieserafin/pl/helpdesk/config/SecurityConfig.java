@@ -20,15 +20,23 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 public class SecurityConfig {
 
     private final boolean basicAuthEnabled;
+    private final List<String> allowedOriginPatterns;
 
-    public SecurityConfig(@Value("${app.security.basic-auth-enabled:true}") boolean basicAuthEnabled) {
+    public SecurityConfig(
+            @Value("${app.security.basic-auth-enabled:false}") boolean basicAuthEnabled,
+            @Value("${app.cors.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*,https://macieserafin.pl}") String allowedOriginPatterns) {
         this.basicAuthEnabled = basicAuthEnabled;
+        this.allowedOriginPatterns = Arrays.stream(allowedOriginPatterns.split(","))
+                .map(String::trim)
+                .filter(pattern -> !pattern.isBlank())
+                .toList();
     }
 
     @Bean
@@ -40,11 +48,12 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/logout", "/api/auth/register").permitAll()
                         .requestMatchers("/user", "/user/**").hasRole("USER")
                         .requestMatchers("/agent", "/agent/**").hasRole("AGENT")
                         .requestMatchers("/api/admin", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
                         .requestMatchers("/api/categories").authenticated()
                         .requestMatchers("/api/tickets/statuses", "/api/tickets/priorities").authenticated()
@@ -87,6 +96,14 @@ public class SecurityConfig {
                                             "Invalid login identifier or password",
                                             request.getRequestURI()));
                         })
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpServletResponse.SC_NO_CONTENT))
                         .permitAll());
 
         if (basicAuthEnabled) {
@@ -114,10 +131,7 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*"
-        ));
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

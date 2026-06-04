@@ -1,10 +1,15 @@
 import { get, post } from './httpClient.js';
 
-export function loginWithBasic(authHeader) {
-  return get('/api/users/me', {
-    skipAuth: true,
-    headers: { Authorization: authHeader }
-  });
+export function login(payload) {
+  const body = new URLSearchParams();
+  body.set('loginIdentifier', payload.loginIdentifier);
+  body.set('password', payload.password);
+
+  return post('/api/auth/login', body, { skipAuth: true });
+}
+
+export function logout() {
+  return post('/api/auth/logout', null, { skipAuth: true });
 }
 
 export function register(payload) {
@@ -12,5 +17,5 @@ export function register(payload) {
 }
 
 export function getCurrentUser() {
-  return get('/api/users/me');
+  return get('/api/auth/me');
 }

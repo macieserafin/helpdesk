@@ -1,7 +1,7 @@
 import { get, patch } from './httpClient.js';
 
 export function getMe() {
-  return get('/api/users/me');
+  return get('/api/auth/me');
 }
 
 export function updateProfile(profile) {

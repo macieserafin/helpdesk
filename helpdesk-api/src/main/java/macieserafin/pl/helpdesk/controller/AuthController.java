@@ -5,11 +5,14 @@ import macieserafin.pl.helpdesk.dto.RegisterUserRequest;
 import macieserafin.pl.helpdesk.dto.UserResponse;
 import macieserafin.pl.helpdesk.service.UserService;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,5 +27,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@Valid @RequestBody RegisterUserRequest request) {
         return userService.registerUser(request);
+    }
+
+    @GetMapping("/me")
+    public UserResponse me(Principal principal) {
+        return userService.findCurrentUser(principal.getName());
     }
 }

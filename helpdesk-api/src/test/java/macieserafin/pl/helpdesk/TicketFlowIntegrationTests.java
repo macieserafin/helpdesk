@@ -27,7 +27,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "app.attachments.storage-dir=target/test-attachments")
+@SpringBootTest(properties = {
+        "app.attachments.storage-dir=target/test-attachments",
+        "app.security.basic-auth-enabled=true"
+})
 @AutoConfigureMockMvc
 class TicketFlowIntegrationTests {
 

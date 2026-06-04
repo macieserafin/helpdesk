@@ -1,5 +1,5 @@
 import { requireAuth } from '../auth/authGuard.js';
-import { currentUser, homeRouteFor } from '../auth/authService.js';
+import { currentUser, homeRouteFor, refreshCurrentUser } from '../auth/authService.js';
 import { requireRole } from '../auth/roleGuard.js';
 import { ApiError } from '../api/httpClient.js';
 import { clearAuthUser } from '../state/authStore.js';
@@ -24,9 +24,12 @@ async function render() {
   const route = matchRoute(path);
 
   try {
-    if (route.public && ['/login', '/register'].includes(path) && currentUser()) {
-      navigate(homeRouteFor(currentUser()));
-      return;
+    if (route.public && ['/login', '/register'].includes(path)) {
+      const user = await resolveCurrentUser();
+      if (user) {
+        navigate(homeRouteFor(user));
+        return;
+      }
     }
 
     let user = currentUser();
@@ -79,6 +82,20 @@ async function render() {
     }
 
     setContent(root, htmlToElement(`<main class="auth-shell"><section class="auth-card"><h1>Błąd</h1><p>${escapeHtml(getErrorMessage(error))}</p></section></main>`));
+  }
+}
+
+async function resolveCurrentUser() {
+  const user = currentUser();
+  if (user) {
+    return user;
+  }
+
+  try {
+    return await refreshCurrentUser();
+  } catch {
+    clearAuthUser();
+    return null;
   }
 }
 

@@ -1,6 +1,5 @@
 import { API_BASE_URL } from '../utils/constants.js';
 import { startLoading, stopLoading } from '../state/uiStore.js';
-import { getAuthHeader } from '../state/authStore.js';
 
 export class ApiError extends Error {
   constructor(message, status, details = null) {
@@ -49,13 +48,9 @@ export function buildQuery(params = {}) {
 export async function request(path, options = {}) {
   const { skipAuth = false, ...fetchOptions } = options;
   const headers = new Headers(options.headers || {});
-  const authHeader = getAuthHeader();
-  if (!skipAuth && authHeader && !headers.has('Authorization')) {
-    headers.set('Authorization', authHeader);
-  }
 
   const config = {
-    credentials: 'omit',
+    credentials: 'include',
     ...fetchOptions,
     headers
   };
@@ -101,16 +96,12 @@ export function del(path, options = {}) {
 
 export async function requestBlob(path, options = {}) {
   const headers = new Headers(options.headers || {});
-  const authHeader = getAuthHeader();
-  if (authHeader && !headers.has('Authorization')) {
-    headers.set('Authorization', authHeader);
-  }
 
   startLoading();
   let response;
   try {
     response = await fetch(buildUrl(path), {
-      credentials: 'omit',
+      credentials: 'include',
       ...options,
       headers
     });

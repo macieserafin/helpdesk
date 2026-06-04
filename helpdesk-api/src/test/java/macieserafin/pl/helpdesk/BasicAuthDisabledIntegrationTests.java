@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,7 +29,7 @@ class BasicAuthDisabledIntegrationTests {
 
     @Test
     void shouldDisableBasicAuthAndKeepSessionLoginAvailable() throws Exception {
-        mockMvc.perform(get("/api/users/me")
+        mockMvc.perform(get("/api/auth/me")
                         .with(httpBasic("user", "user123")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Authentication is required"));
@@ -44,9 +45,23 @@ class BasicAuthDisabledIntegrationTests {
         MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
         assertThat(session).isNotNull();
 
+        mockMvc.perform(get("/api/auth/me")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginIdentifier").value("user"));
+
         mockMvc.perform(get("/api/users/me")
                         .session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginIdentifier").value("user"));
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .session(session))
+                .andExpect(status().isNoContent())
+                .andExpect(cookie().maxAge("JSESSIONID", 0));
+
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentication is required"));
     }
 }
