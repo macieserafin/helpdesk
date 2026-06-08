@@ -1,5 +1,8 @@
 package macieserafin.pl.helpdesk.config;
 
+import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
+import macieserafin.pl.helpdesk.dto.TicketResponse;
+import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.model.entity.UserProfile;
 import macieserafin.pl.helpdesk.model.enums.TicketPriority;
 import macieserafin.pl.helpdesk.model.enums.TicketStatus;
@@ -46,54 +49,174 @@ public class SeedConfig {
     @Order(2)
     CommandLineRunner seedCategories(CategoryService categoryService) {
         return args -> {
-            categoryService.createCategoryIfMissing("Konto", "Logowanie, dane konta i ustawienia profilu uzytkownika.");
-            categoryService.createCategoryIfMissing("Uprawnienia", "Dostepy, role i widocznosc funkcji w aplikacji.");
-            categoryService.createCategoryIfMissing("Zalaczniki", "Dodawanie, pobieranie i obsluga plikow przy zgloszeniach.");
-            categoryService.createCategoryIfMissing("Aplikacja", "Bledy interfejsu, formularzy i nieprawidlowe dzialanie panelu.");
-            categoryService.createCategoryIfMissing("Inne", "Zgloszenia, ktore nie pasuja do pozostalych kategorii.");
+            categoryService.createCategoryIfMissing("Konto", "Logowanie, dane konta i ustawienia profilu użytkownika.");
+            categoryService.createCategoryIfMissing("Uprawnienia", "Dostępy, role i widoczność funkcji w aplikacji.");
+            categoryService.createCategoryIfMissing("Załączniki", "Dodawanie, pobieranie i obsługa plików przy zgłoszeniach.");
+            categoryService.createCategoryIfMissing("Aplikacja", "Błędy interfejsu, formularzy i nieprawidłowe działanie panelu.");
+            categoryService.createCategoryIfMissing("Inne", "Zgłoszenia, które nie pasują do pozostałych kategorii.");
         };
     }
 
-    /*
     @Bean
     @Order(3)
-    CommandLineRunner seedTicket(TicketService ticketService) {
+    CommandLineRunner seedTickets(TicketService ticketService) {
         return args -> {
-            ticketService.createTicketIfMissing(
-                    "Nie moge zalogowac sie do panelu",
-                    "Po wpisaniu poprawnych danych logowania system wraca do ekranu logowania bez komunikatu o bledzie.",
-                    TicketStatus.OPEN,
-                    TicketPriority.UNASSIGNED,
-                    "user",
-                    "Konto"
-            );
-
-            ticketService.createTicketIfMissing(
-                    "Brak dostepu do raportow",
-                    "Nie widze zakladki z raportami, chociaz moje konto powinno miec dostep do tej sekcji.",
-                    TicketStatus.OPEN,
-                    TicketPriority.UNASSIGNED,
-                    "user",
-                    "Uprawnienia"
-            );
-
-            ticketService.createTicketIfMissing(
-                    "Nie moge dodac zalacznika",
-                    "Podczas dodawania pliku do zgloszenia formularz zwraca blad i nie zapisuje zalacznika.",
-                    TicketStatus.OPEN,
-                    TicketPriority.UNASSIGNED,
-                    "user",
-                    "Zalaczniki"
-            );
-
-            ticketService.createTicketIfMissing(
-                    "Formularz profilu nie zapisuje zmian",
-                    "Po aktualizacji danych profilu i zapisaniu formularza poprzednie wartosci nadal sa widoczne w panelu.",
-                    TicketStatus.OPEN,
-                    TicketPriority.UNASSIGNED,
-                    "user",
-                    "Aplikacja"
-            );
+            seedOpenHighPriorityTicket(ticketService);
+            seedAssignedInProgressTicket(ticketService);
+            seedWaitingForUserTicket(ticketService);
+            seedResolvedTicket(ticketService);
+            seedClosedTicket(ticketService);
+            seedRejectedTicket(ticketService);
+            seedCancelledTicket(ticketService);
         };
-    }*/
+    }
+
+    private void seedOpenHighPriorityTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Nie mogę zalogować się do panelu",
+                "Po wpisaniu poprawnych danych logowania system wraca do ekranu logowania bez komunikatu o błędzie.",
+                "Konto"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.updatePriority(ticket.getId(), new UpdateTicketPriorityRequest(TicketPriority.HIGH), "agent");
+    }
+
+    private void seedAssignedInProgressTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Brak dostępu do raportów",
+                "Nie widzę zakładki z raportami, chociaż moje konto powinno mieć dostęp do tej sekcji.",
+                "Uprawnienia"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.assignTicket(ticket.getId(), "agent");
+        ticketService.updatePriority(ticket.getId(), new UpdateTicketPriorityRequest(TicketPriority.MEDIUM), "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Sprawdzam role i historię zmian uprawnień dla tego konta.", true),
+                "agent");
+    }
+
+    private void seedWaitingForUserTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Nie mogę dodać załącznika",
+                "Podczas dodawania pliku do zgłoszenia formularz zwraca błąd i nie zapisuje załącznika.",
+                "Załączniki"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.assignTicket(ticket.getId(), "agent");
+        ticketService.updatePriority(ticket.getId(), new UpdateTicketPriorityRequest(TicketPriority.HIGH), "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Proszę dosłać nazwę pliku, rozmiar i typ załącznika, który powoduje błąd.", false),
+                "agent");
+    }
+
+    private void seedResolvedTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Formularz profilu nie zapisuje zmian",
+                "Po aktualizacji danych profilu i zapisaniu formularza poprzednie wartości nadal są widoczne w panelu.",
+                "Aplikacja"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.assignTicket(ticket.getId(), "agent");
+        ticketService.updatePriority(ticket.getId(), new UpdateTicketPriorityRequest(TicketPriority.LOW), "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Czy problem dotyczy telefonu, adresu czy wszystkich danych profilu?", false),
+                "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Problem dotyczy numeru telefonu i miasta.", false),
+                "user");
+        ticketService.updateStatus(ticket.getId(), TicketStatus.RESOLVED, "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Poprawka została wdrożona. Proszę potwierdzić, czy profil zapisuje się poprawnie.", false),
+                "agent");
+    }
+
+    private void seedClosedTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Reset hasła do konta testowego",
+                "Nie mogę odzyskać hasła do konta testowego używanego podczas prezentacji.",
+                "Konto"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.assignTicket(ticket.getId(), "agent");
+        ticketService.updatePriority(ticket.getId(), new UpdateTicketPriorityRequest(TicketPriority.LOW), "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Reset został przygotowany. Proszę potwierdzić, że konto testowe jest właściwe.", false),
+                "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Potwierdzam, chodzi o konto do prezentacji.", false),
+                "user");
+        ticketService.updateStatus(ticket.getId(), TicketStatus.RESOLVED, "agent");
+        ticketService.updateStatus(ticket.getId(), TicketStatus.CLOSED, "user");
+    }
+
+    private void seedRejectedTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Prośba o dostęp do panelu administracyjnego",
+                "Chciałbym dostać pełny dostęp administracyjny do środowiska produkcyjnego.",
+                "Uprawnienia"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.updatePriority(ticket.getId(), new UpdateTicketPriorityRequest(TicketPriority.CRITICAL), "agent");
+        ticketService.updateStatus(ticket.getId(), TicketStatus.REJECTED, "agent");
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Zgłoszenie odrzucone: dostęp administracyjny wymaga osobnej ścieżki akceptacji.", false),
+                "agent");
+    }
+
+    private void seedCancelledTicket(TicketService ticketService) {
+        TicketResponse ticket = createSeedTicket(
+                ticketService,
+                "Duplikat zgłoszenia o problemie z logowaniem",
+                "To zgłoszenie jest duplikatem wcześniejszej sprawy dotyczącej logowania.",
+                "Inne"
+        );
+        if (ticket == null) {
+            return;
+        }
+
+        ticketService.addComment(ticket.getId(),
+                new CreateCommentRequest("Zamykam jako duplikat, główna sprawa jest już zgłoszona.", false),
+                "user");
+        ticketService.updateStatus(ticket.getId(), TicketStatus.CANCELLED, "user");
+    }
+
+    private TicketResponse createSeedTicket(TicketService ticketService, String title, String description,
+                                            String categoryName) {
+        if (ticketService.ticketExistsByTitle(title)) {
+            return null;
+        }
+
+        return ticketService.createTicketIfMissing(
+                title,
+                description,
+                TicketStatus.OPEN,
+                TicketPriority.UNASSIGNED,
+                "user",
+                categoryName
+        );
+    }
 }

@@ -22,7 +22,7 @@ export async function MyTicketsPage({ showToast }) {
   page.querySelector('[data-header]').replaceWith(PageHeader({
     eyebrow: 'USER',
     title: 'Moje tickety',
-    description: 'Lista zgloszen utworzonych przez aktualnie zalogowanego uzytkownika.'
+    description: 'Lista zgłoszeń utworzonych przez aktualnie zalogowanego użytkownika.'
   }));
 
   async function load() {

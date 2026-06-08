@@ -10,6 +10,8 @@ import macieserafin.pl.helpdesk.dto.TicketHistoryResponse;
 import macieserafin.pl.helpdesk.dto.UpdateTicketPriorityRequest;
 import macieserafin.pl.helpdesk.dto.UpdateTicketRequest;
 import macieserafin.pl.helpdesk.dto.TicketResponse;
+import macieserafin.pl.helpdesk.dto.UserDashboardActivityResponse;
+import macieserafin.pl.helpdesk.dto.UserDashboardResponse;
 import macieserafin.pl.helpdesk.model.entity.Attachment;
 import macieserafin.pl.helpdesk.model.entity.Comment;
 import macieserafin.pl.helpdesk.model.entity.Category;
@@ -45,6 +47,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -139,6 +144,42 @@ public class TicketService {
 
         return ticketRepository.findAll(buildTicketSpecification(filter, user.getId()), pageable)
                 .map(this::mapToTicketResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public UserDashboardResponse getUserDashboard(String loginIdentifier) {
+        User user = findUser(loginIdentifier);
+        List<Ticket> tickets = ticketRepository.findByCreatedByIdOrderByCreatedAtDesc(user.getId());
+        Map<TicketStatus, Long> statusBreakdown = buildStatusBreakdown(tickets);
+        List<Ticket> latestTickets = tickets.stream()
+                .sorted(Comparator.comparing(this::lastActivityAt).reversed())
+                .limit(5)
+                .toList();
+        List<Ticket> requiresUserAction = tickets.stream()
+                .filter(ticket -> ticket.getStatus() == TicketStatus.WAITING_FOR_USER
+                        || ticket.getStatus() == TicketStatus.RESOLVED)
+                .sorted(Comparator.comparing(this::lastActivityAt).reversed())
+                .limit(5)
+                .toList();
+
+        LocalDateTime lastUpdatedAt = tickets.stream()
+                .map(this::lastActivityAt)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        return new UserDashboardResponse(
+                tickets.size(),
+                countStatus(tickets, TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.WAITING_FOR_USER),
+                countStatus(tickets, TicketStatus.OPEN, TicketStatus.IN_PROGRESS),
+                countStatus(tickets, TicketStatus.WAITING_FOR_USER),
+                countStatus(tickets, TicketStatus.RESOLVED),
+                countStatus(tickets, TicketStatus.CLOSED),
+                lastUpdatedAt,
+                statusBreakdown,
+                latestTickets.stream().map(this::mapToTicketResponse).toList(),
+                requiresUserAction.stream().map(this::mapToTicketResponse).toList(),
+                recentUserActivity(tickets)
+        );
     }
 
     @Transactional(readOnly = true)
@@ -501,29 +542,186 @@ public class TicketService {
         );
     }
 
-    @Transactional
-    public void createTicketIfMissing(String title, String description, TicketStatus status, TicketPriority priority,
-                                      String createdByLoginIdentifier, String categoryName) {
-        if (!ticketRepository.existsByTitle(title)) {
-            var createdBy = userRepository.findByLoginIdentifier(createdByLoginIdentifier)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + createdByLoginIdentifier));
-            checkCanCreateTicket(createdBy);
-
-            Category category = categoryRepository.findByNameIgnoreCaseAndActiveTrue(
-                            requireText(categoryName, "Category is required"))
-                    .orElseThrow(() -> new IllegalArgumentException("Category not found or inactive: " + categoryName));
-
-            Ticket ticket = new Ticket(
-                    title,
-                    description,
-                    status,
-                    priority,
-                    createdBy,
-                    category
-            );
-
-            ticketRepository.save(ticket);
+    private Map<TicketStatus, Long> buildStatusBreakdown(List<Ticket> tickets) {
+        Map<TicketStatus, Long> statusBreakdown = new EnumMap<>(TicketStatus.class);
+        for (TicketStatus status : TicketStatus.values()) {
+            statusBreakdown.put(status, 0L);
         }
+        tickets.forEach(ticket -> statusBreakdown.compute(ticket.getStatus(), (status, count) -> count == null ? 1L : count + 1));
+
+        return statusBreakdown;
+    }
+
+    private long countStatus(List<Ticket> tickets, TicketStatus... statuses) {
+        Set<TicketStatus> expectedStatuses = EnumSet.noneOf(TicketStatus.class);
+        expectedStatuses.addAll(List.of(statuses));
+
+        return tickets.stream()
+                .filter(ticket -> expectedStatuses.contains(ticket.getStatus()))
+                .count();
+    }
+
+    private List<UserDashboardActivityResponse> recentUserActivity(List<Ticket> tickets) {
+        List<UserDashboardActivityResponse> activities = new ArrayList<>();
+
+        for (Ticket ticket : tickets) {
+            ticket.getComments()
+                    .stream()
+                    .filter(comment -> !comment.isInternal())
+                    .forEach(comment -> activities.add(new UserDashboardActivityResponse(
+                            ticket.getId(),
+                            ticket.getTitle(),
+                            "COMMENT",
+                            comment.getAuthor().getLoginIdentifier(),
+                            "Komentarz: " + truncate(comment.getContent(), 140),
+                            comment.getCreatedAt()
+                    )));
+
+            ticket.getHistoryEntries()
+                    .stream()
+                    .filter(history -> history.getActionType() != TicketHistoryActionType.COMMENT_ADDED)
+                    .filter(history -> history.getActionType() != TicketHistoryActionType.ATTACHMENT_ADDED)
+                    .filter(history -> history.getActionType() != TicketHistoryActionType.ATTACHMENT_DELETED)
+                    .forEach(history -> activities.add(new UserDashboardActivityResponse(
+                            ticket.getId(),
+                            ticket.getTitle(),
+                            "HISTORY",
+                            history.getChangedBy().getLoginIdentifier(),
+                            activityDescription(history),
+                            history.getChangedAt()
+                    )));
+
+            ticket.getAttachments()
+                    .stream()
+                    .filter(this::isPublicAttachment)
+                    .forEach(attachment -> activities.add(new UserDashboardActivityResponse(
+                            ticket.getId(),
+                            ticket.getTitle(),
+                            "ATTACHMENT",
+                            attachment.getUploadedBy().getLoginIdentifier(),
+                            "Dodano załącznik: " + attachment.getFileName(),
+                            attachment.getUploadedAt()
+                    )));
+        }
+
+        return activities.stream()
+                .sorted(Comparator.comparing(UserDashboardActivityResponse::getOccurredAt).reversed())
+                .limit(8)
+                .toList();
+    }
+
+    private LocalDateTime lastActivityAt(Ticket ticket) {
+        LocalDateTime lastActivityAt = ticket.getUpdatedAt() == null ? ticket.getCreatedAt() : ticket.getUpdatedAt();
+
+        for (Comment comment : ticket.getComments()) {
+            if (!comment.isInternal() && comment.getCreatedAt().isAfter(lastActivityAt)) {
+                lastActivityAt = comment.getCreatedAt();
+            }
+        }
+        for (TicketHistory history : ticket.getHistoryEntries()) {
+            if (history.getChangedAt().isAfter(lastActivityAt)) {
+                lastActivityAt = history.getChangedAt();
+            }
+        }
+        for (Attachment attachment : ticket.getAttachments()) {
+            if (isPublicAttachment(attachment) && attachment.getUploadedAt().isAfter(lastActivityAt)) {
+                lastActivityAt = attachment.getUploadedAt();
+            }
+        }
+
+        return lastActivityAt;
+    }
+
+    private boolean isPublicAttachment(Attachment attachment) {
+        return attachment.getComment() == null || !attachment.getComment().isInternal();
+    }
+
+    private String activityDescription(TicketHistory history) {
+        if (history.getOldStatus() != null && history.getNewStatus() != null) {
+            return "Zmieniono status: " + statusLabel(history.getOldStatus()) + " -> "
+                    + statusLabel(history.getNewStatus());
+        }
+        if (history.getActionType() == TicketHistoryActionType.TICKET_CREATED) {
+            return "Utworzono zgłoszenie";
+        }
+        if (history.getActionType() == TicketHistoryActionType.TICKET_RESOLVED) {
+            return "Oznaczono zgłoszenie jako rozwiązane";
+        }
+        if (history.getActionType() == TicketHistoryActionType.TICKET_CLOSED) {
+            return "Zamknięto zgłoszenie";
+        }
+        if (history.getNote() != null && !history.getNote().isBlank()) {
+            return history.getNote();
+        }
+
+        return history.getActionType().name();
+    }
+
+    private String statusLabel(TicketStatus status) {
+        return switch (status) {
+            case OPEN -> "Otwarte";
+            case IN_PROGRESS -> "W toku";
+            case WAITING_FOR_USER -> "Czeka na użytkownika";
+            case RESOLVED -> "Rozwiązane";
+            case CLOSED -> "Zamknięte";
+            case REJECTED -> "Odrzucone";
+            case CANCELLED -> "Anulowane";
+        };
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+
+        String normalized = value.replaceAll("\\s+", " ").trim();
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+
+        return normalized.substring(0, maxLength - 3) + "...";
+    }
+
+    @Transactional
+    public TicketResponse createTicketIfMissing(String title, String description, TicketStatus status,
+                                                TicketPriority priority, String createdByLoginIdentifier,
+                                                String categoryName) {
+        return ticketRepository.findByTitle(title)
+                .map(this::mapToTicketResponse)
+                .orElseGet(() -> createSeedTicket(title, description, status, priority,
+                        createdByLoginIdentifier, categoryName));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean ticketExistsByTitle(String title) {
+        return ticketRepository.existsByTitle(title);
+    }
+
+    private TicketResponse createSeedTicket(String title, String description, TicketStatus status,
+                                            TicketPriority priority, String createdByLoginIdentifier,
+                                            String categoryName) {
+        var createdBy = userRepository.findByLoginIdentifier(createdByLoginIdentifier)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + createdByLoginIdentifier));
+        checkCanCreateTicket(createdBy);
+
+        Category category = categoryRepository.findByNameIgnoreCaseAndActiveTrue(
+                        requireText(categoryName, "Category is required"))
+                .orElseThrow(() -> new IllegalArgumentException("Category not found or inactive: " + categoryName));
+
+        Ticket ticket = new Ticket(
+                title,
+                description,
+                status,
+                priority,
+                createdBy,
+                category
+        );
+
+        Ticket savedTicket = ticketRepository.save(ticket);
+        saveHistory(savedTicket, createdBy, TicketHistoryActionType.TICKET_CREATED, null, status,
+                null, priority, null, null, "Seed ticket created");
+
+        return mapToTicketResponse(savedTicket);
     }
 
     private void checkCanChangeStatus(User actor, Ticket ticket, TicketStatus newStatus) {

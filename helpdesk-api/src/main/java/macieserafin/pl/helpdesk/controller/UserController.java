@@ -4,8 +4,10 @@ import jakarta.validation.Valid;
 import macieserafin.pl.helpdesk.dto.CreateUserRequest;
 import macieserafin.pl.helpdesk.dto.UpdateUserEnabledRequest;
 import macieserafin.pl.helpdesk.dto.UpdateUserRequest;
+import macieserafin.pl.helpdesk.dto.UserDashboardResponse;
 import macieserafin.pl.helpdesk.dto.UserProfileRequest;
 import macieserafin.pl.helpdesk.dto.UserResponse;
+import macieserafin.pl.helpdesk.service.TicketService;
 import macieserafin.pl.helpdesk.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,15 +26,22 @@ import java.util.List;
 @RequestMapping("/api")
 public class UserController {
     private final UserService userService;
+    private final TicketService ticketService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, TicketService ticketService) {
         this.userService = userService;
+        this.ticketService = ticketService;
     }
 
     //zwraca zalogowanego usera
     @GetMapping("/users/me")
     public UserResponse getCurrentUser(Principal principal) {
         return userService.findCurrentUser(principal.getName());
+    }
+
+    @GetMapping("/users/me/dashboard")
+    public UserDashboardResponse getCurrentUserDashboard(Principal principal) {
+        return ticketService.getUserDashboard(principal.getName());
     }
 
     //aktualizuje profil zalogowanego usera

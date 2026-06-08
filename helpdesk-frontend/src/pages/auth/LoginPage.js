@@ -16,7 +16,7 @@ export function LoginPage({ navigate, showToast }) {
           <label>Identyfikator logowania lub email
             <input name="loginIdentifier" autocomplete="off" required />
           </label>
-          <label>Haslo
+          <label>Hasło
             <input name="password" type="password" autocomplete="current-password" required />
           </label>
           <button class="button button-primary" type="submit">Zaloguj</button>

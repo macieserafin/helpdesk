@@ -8,19 +8,19 @@ export function TicketForm({ categories = [], navigate, showToast }) {
   const disabled = categories.length === 0;
   const form = htmlToElement(`
     <form class="card form-grid">
-      <label>Tytul
+      <label>Tytuł
         <input name="title" maxlength="${FIELD_LIMITS.ticket.title.max}" required placeholder="Np. Problem z logowaniem" />
       </label>
       <label>Kategoria
         <select name="category" required ${disabled ? 'disabled' : ''}>
-          <option value="">Wybierz kategorie</option>
+          <option value="">Wybierz kategorię</option>
           ${categories.map((category) => `<option value="${escapeHtml(category.name)}">${escapeHtml(category.name)}</option>`).join('')}
         </select>
       </label>
       <label class="span-2">Opis
         <textarea name="description" maxlength="${FIELD_LIMITS.ticket.description.max}" rows="7" required placeholder="Opisz problem, kroki i oczekiwany rezultat"></textarea>
       </label>
-      ${disabled ? '<p class="alert alert-warning span-2">Brak aktywnych kategorii. Skontaktuj sie z administratorem.</p>' : ''}
+      ${disabled ? '<p class="alert alert-warning span-2">Brak aktywnych kategorii. Skontaktuj się z administratorem.</p>' : ''}
       <div class="form-actions span-2">
         <button class="button button-primary" type="submit" ${disabled ? 'disabled' : ''}>Utworz ticket</button>
       </div>

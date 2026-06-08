@@ -1,17 +1,20 @@
 # Roadmap projektu Helpdesk
 
-Stan po zmianach: 2026-06-04.
+Stan po zmianach: 2026-06-08.
 
 ## Aktualny status
 
-Projekt ma juz dzialajacy rdzen aplikacji helpdeskowej: uzytkownicy, role, profile, tickety, statusy, priorytety, kategorie, komentarze, historia zmian i zalaczniki. Po ostatnich zmianach doszly dwa wazne elementy, ktore wczesniej byly glownymi brakami P0:
+Projekt ma juz dzialajacy rdzen aplikacji helpdeskowej: uzytkownicy, role, profile, tickety, statusy, priorytety, kategorie, komentarze, historia zmian i zalaczniki. Po ostatnich zmianach doszly elementy, ktore wczesniej byly glownymi brakami P0/P1:
 
 - publiczna rejestracja uzytkownika we frontendzie przez widok `/register`,
 - przejscie frontendu z Basic Auth w `sessionStorage` na logowanie sesyjne przez `POST /api/auth/login`, `GET /api/auth/me` i `POST /api/auth/logout`,
 - dokumentacja decyzji auth/session w `docs/auth-session-security.md`,
-- ujednolicenie identyfikatora logowania jako `loginIdentifier`.
+- ujednolicenie identyfikatora logowania jako `loginIdentifier`,
+- backendowy endpoint `GET /api/users/me/dashboard`,
+- przebudowany dashboard uzytkownika jako portal klienta z KPI, statusem spraw, ostatnimi zgloszeniami, szybka pomoca, aktywnoscia i stanem pustym,
+- poprawki polskich znakow w kluczowych etykietach frontendu i seedowanych kategoriach.
 
-Najblizszy rozwoj powinien teraz skupic sie na weryfikacji tych zmian, dokumentacji uruchomienia, dopracowaniu dashboardow dla kazdej roli i przygotowaniu fundamentu pod realtime chat.
+Najblizszy rozwoj powinien teraz skupic sie na dokumentacji uruchomienia, dopracowaniu dashboardow agenta i admina, rozbudowie funkcji szczegolow ticketa oraz przygotowaniu fundamentu pod realtime chat.
 
 ## Zalozenia dla dashboardow po researchu
 
@@ -53,93 +56,6 @@ Cel: projekt ma byc latwy do uruchomienia i obronienia jako calosc.
    - role i uprawnienia,
    - statusy i priorytety ticketow.
 2. Dalszy rozwoj `docs`.
-
-## User dashboard
-
-Cel: dashboard uzytkownika ma byc prostym portalem klienta: "zglos problem", "sprawdz status", "odpowiedz supportowi", "dolacz pliki", "zamknij sprawe".
-
-Obecny stan:
-
-- widok `/user` pokazuje liczbe wszystkich, aktywnych i zamknietych ticketow,
-- pokazuje ostatnie zgloszenia,
-- ma CTA "Nowy ticket",
-- nie pokazuje jeszcze ticketow wymagajacych odpowiedzi uzytkownika,
-- nie pokazuje ostatniej aktywnosci, zalacznikow, przewidywanego nastepnego kroku ani przyszlego chatu.
-
-Docelowy układ dashboardu:
-
-1. Gorny pasek akcji:
-   - przycisk "Nowe zgloszenie",
-   - przycisk "Moje tickety",
-   - przycisk "Profil",
-   - docelowo przycisk "Baza wiedzy".
-2. Karty KPI uzytkownika:
-   - wszystkie moje tickety,
-   - otwarte,
-   - czekaja na support,
-   - czekaja na moja odpowiedz,
-   - rozwiazane/zamkniete,
-   - ostatnia aktualizacja.
-3. Sekcja "Wymagaja mojej reakcji":
-   - tickety w statusie `WAITING_FOR_USER`,
-   - tickety z najnowszym komentarzem od agenta,
-   - tickety rozwiazane, ktore uzytkownik moze zamknac albo wznowic.
-4. Sekcja "Ostatnie zgloszenia":
-   - ID,
-   - tytul,
-   - status,
-   - priorytet,
-   - kategoria,
-   - ostatnia aktualizacja,
-   - szybkie wejscie w szczegoly.
-5. Sekcja "Status moich spraw":
-   - mini wykres/lista statusow,
-   - rozbicie na `OPEN`, `IN_PROGRESS`, `WAITING_FOR_USER`, `RESOLVED`, `CLOSED`.
-6. Sekcja "Ostatnia aktywnosc":
-   - ostatni komentarz,
-   - ostatnia zmiana statusu,
-   - ostatni dodany zalacznik,
-   - kto wykonal akcje.
-7. Sekcja "Szybka pomoc":
-   - lista kategorii,
-   - link do tworzenia ticketa z wybrana kategoria,
-   - docelowo sugestie artykulow knowledge base przed utworzeniem ticketa.
-8. Stan pusty:
-   - gdy uzytkownik nie ma ticketow, pokazac konkretny komunikat i CTA "Utworz pierwsze zgloszenie",
-   - nie pokazywac pustej tabeli jako glownego elementu.
-
-Funkcje do dodania w szczegolach ticketa, zeby dashboard mial sens:
-
-1. Upload zalacznikow przy tworzeniu ticketa.
-2. Czytelny timeline statusu.
-3. Oznaczenie "wymaga Twojej odpowiedzi".
-4. Akcja "Zamknij jako rozwiazane" dla ticketow `RESOLVED`.
-5. Miejsce pod przyszly `ChatPanel`.
-
-Potrzebne endpointy/backend:
-
-1. `GET /api/users/me/dashboard`
-   - `totalTickets`,
-   - `openTickets`,
-   - `waitingForSupport`,
-   - `waitingForUser`,
-   - `resolvedTickets`,
-   - `closedTickets`,
-   - `latestTickets`,
-   - `requiresUserAction`,
-   - `recentActivity`.
-2. Rozwazyc pole `lastActivityAt` w `TicketResponse`.
-3. Rozwazyc pole `lastPublicCommentBy` albo `hasUnreadAgentReply`.
-4. Rozwazyc endpoint aktywnosci: `GET /api/users/me/activity`.
-
-Kolejnosc wdrozenia:
-
-1. Poprawic teksty UI i polskie znaki.
-2. Dodac backendowy dashboard summary dla usera.
-3. Przebudowac `/user` na sekcje opisane wyzej.
-4. Dodac upload zalacznikow przy tworzeniu ticketa.
-5. Dodac "wymaga mojej reakcji".
-6. Dodac timeline statusu i przygotowac miejsce pod chat.
 
 ## Agent dashboard
 

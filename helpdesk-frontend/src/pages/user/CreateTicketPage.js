@@ -7,9 +7,9 @@ export async function CreateTicketPage({ navigate, showToast }) {
   const categories = await getActiveCategories();
   const page = htmlToElement('<section class="page stack"><div data-header></div><div data-form></div></section>');
   page.querySelector('[data-header]').replaceWith(PageHeader({
-    eyebrow: 'Nowe zgloszenie',
+    eyebrow: 'Nowe zgłoszenie',
     title: 'Utworz ticket',
-    description: 'Wybierz aktywna kategorie i opisz problem.'
+    description: 'Wybierz aktywną kategorię i opisz problem.'
   }));
   page.querySelector('[data-form]').replaceWith(TicketForm({ categories, navigate, showToast }));
   return page;

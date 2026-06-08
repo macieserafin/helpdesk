@@ -6,7 +6,7 @@ import { escapeHtml, htmlToElement } from '../../utils/dom.js';
 
 export function TicketTable({ tickets, actions = () => '', showActions = true }) {
   if (!tickets?.length) {
-    return EmptyState('Brak ticketow', 'Nie znaleziono zgloszen dla tej sekcji.');
+    return EmptyState('Brak ticketów', 'Nie znaleziono zgłoszeń dla tej sekcji.');
   }
 
   const table = htmlToElement(`
@@ -15,7 +15,7 @@ export function TicketTable({ tickets, actions = () => '', showActions = true })
         <thead>
           <tr>
             <th>ID</th>
-            <th>Tytul</th>
+            <th>Tytuł</th>
             <th>Status</th>
             <th>Priorytet</th>
             <th>Kategoria</th>
@@ -29,7 +29,7 @@ export function TicketTable({ tickets, actions = () => '', showActions = true })
           ${tickets.map((ticket) => `
             <tr>
               <td data-label="ID">#${ticket.id}</td>
-              <td data-label="Tytul"><button class="link-button" data-ticket-id="${ticket.id}">${escapeHtml(ticket.title)}</button></td>
+              <td data-label="Tytuł"><button class="link-button" data-ticket-id="${ticket.id}">${escapeHtml(ticket.title)}</button></td>
               <td data-label="Status">${StatusBadge(ticket.status)}</td>
               <td data-label="Priorytet">${PriorityBadge(ticket.priority)}</td>
               <td data-label="Kategoria">${escapeHtml(ticket.category)}</td>

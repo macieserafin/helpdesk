@@ -62,6 +62,47 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldReturnCurrentUserDashboardSummary() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String loginIdentifier = "dashboard-" + suffix;
+        String password = "dashboard123";
+        registerUser(loginIdentifier, password);
+        Long ticketId = createTicket(loginIdentifier, password,
+                "Dashboard ticket " + suffix,
+                "Problem widoczny w panelu uzytkownika.",
+                "Konto");
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", ticketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/tickets/{id}/comments", ticketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Prosze o doprecyzowanie zgloszenia.",
+                                  "internal": false
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/users/me/dashboard")
+                        .with(httpBasic(loginIdentifier, password)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalTickets").value(1))
+                .andExpect(jsonPath("$.openTickets").value(1))
+                .andExpect(jsonPath("$.waitingForSupport").value(0))
+                .andExpect(jsonPath("$.waitingForUser").value(1))
+                .andExpect(jsonPath("$.resolvedTickets").value(0))
+                .andExpect(jsonPath("$.closedTickets").value(0))
+                .andExpect(jsonPath("$.statusBreakdown.WAITING_FOR_USER").value(1))
+                .andExpect(jsonPath("$.latestTickets[0].id").value(ticketId))
+                .andExpect(jsonPath("$.requiresUserAction[0].id").value(ticketId))
+                .andExpect(jsonPath("$.recentActivity[0].type").value("COMMENT"));
+    }
+
+    @Test
     void shouldAuthenticateEndUserWithLoginIdentifierOrEmailAndRejectStaffEmail() throws Exception {
         mockMvc.perform(get("/api/users/me")
                         .with(httpBasic("user", "user123")))

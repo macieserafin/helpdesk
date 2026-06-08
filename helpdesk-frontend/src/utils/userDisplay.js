@@ -9,5 +9,5 @@ export function displayUserName(user) {
     .filter(Boolean)
     .join(' ');
 
-  return fullName || userLoginIdentifier(user) || 'Uzytkownik';
+  return fullName || userLoginIdentifier(user) || 'Użytkownik';
 }

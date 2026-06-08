@@ -78,7 +78,7 @@ export function CommentPanel({ ticketId, comments, attachments = [], user, staff
         `).join('') || '<p class="muted">Brak komentarzy.</p>'}
         ${unassignedAttachments.length ? `
           <article class="comment comment-attachments-only">
-            <div><strong>Zalaczniki bez komentarza</strong></div>
+            <div><strong>Załączniki bez komentarza</strong></div>
             ${renderCommentAttachments(unassignedAttachments, user)}
           </article>
         ` : ''}
@@ -87,7 +87,7 @@ export function CommentPanel({ ticketId, comments, attachments = [], user, staff
         <label>Nowy komentarz
           <textarea name="content" maxlength="${FIELD_LIMITS.comment.content.max}" rows="4" required></textarea>
         </label>
-        <label>Zalaczniki do komentarza
+        <label>Załączniki do komentarza
           <input name="attachments" type="file" multiple />
           <span class="file-summary" data-file-summary>Nie wybrano plikow.</span>
         </label>

@@ -14,8 +14,8 @@ const ADMIN_TRANSITIONS = {
 
 const ACTION_LABELS = {
   IN_PROGRESS: 'Wznow prace',
-  WAITING_FOR_USER: 'Czeka na uzytkownika',
-  RESOLVED: 'Rozwiaz',
+  WAITING_FOR_USER: 'Czeka na użytkownika',
+  RESOLVED: 'Rozwiąż',
   CLOSED: 'Zamknij ticket',
   REJECTED: 'Odrzuc',
   CANCELLED: 'Anuluj ticket'
@@ -71,7 +71,7 @@ export function TicketStatusForm({ ticket, user, onChange, compact = false }) {
           <button class="button button-secondary ${compact ? 'button-small' : ''}" type="button" data-status="${status}" title="${STATUS_LABELS[status] || status}">
             ${ACTION_LABELS[status] || STATUS_LABELS[status] || status}
           </button>
-        `).join('') || '<p class="muted">Brak dostepnych zmian statusu.</p>'}
+        `).join('') || '<p class="muted">Brak dostępnych zmian statusu.</p>'}
       </div>
     </div>
   `);

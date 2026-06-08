@@ -50,7 +50,7 @@ export const ASSIGNABLE_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 export const ROLE_LABELS = {
-  USER: 'Uzytkownik',
+  USER: 'Użytkownik',
   AGENT: 'Agent',
   ADMIN: 'Administrator'
 };
@@ -58,9 +58,9 @@ export const ROLE_LABELS = {
 export const STATUS_LABELS = {
   OPEN: 'Otwarte',
   IN_PROGRESS: 'W toku',
-  WAITING_FOR_USER: 'Czeka na uzytkownika',
-  RESOLVED: 'Rozwiazane',
-  CLOSED: 'Zamkniete',
+  WAITING_FOR_USER: 'Czeka na użytkownika',
+  RESOLVED: 'Rozwiązane',
+  CLOSED: 'Zamknięte',
   REJECTED: 'Odrzucone',
   CANCELLED: 'Anulowane'
 };
@@ -68,7 +68,7 @@ export const STATUS_LABELS = {
 export const PRIORITY_LABELS = {
   UNASSIGNED: 'Nieustalony',
   LOW: 'Niski',
-  MEDIUM: 'Sredni',
+  MEDIUM: 'Średni',
   HIGH: 'Wysoki',
   CRITICAL: 'Krytyczny'
 };
@@ -80,8 +80,8 @@ export const HISTORY_ACTION_LABELS = {
   PRIORITY_CHANGED: 'Zmieniono priorytet',
   ASSIGNED_CHANGED: 'Zmieniono przypisanie',
   COMMENT_ADDED: 'Dodano komentarz',
-  ATTACHMENT_ADDED: 'Dodano zalacznik',
-  ATTACHMENT_DELETED: 'Usunieto zalacznik',
-  TICKET_RESOLVED: 'Rozwiazano ticket',
+  ATTACHMENT_ADDED: 'Dodano załącznik',
+  ATTACHMENT_DELETED: 'Usunięto załącznik',
+  TICKET_RESOLVED: 'Rozwiązano ticket',
   TICKET_CLOSED: 'Zamknieto ticket'
 };

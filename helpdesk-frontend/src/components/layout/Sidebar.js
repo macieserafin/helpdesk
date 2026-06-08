@@ -9,7 +9,7 @@ const NAV = [
   { label: 'Kolejka', path: '/agent/tickets', roles: [ROLES.AGENT] },
   { label: 'Przypisane', path: '/agent/assigned', roles: [ROLES.AGENT] },
   { label: 'Dashboard', path: '/admin', roles: [ROLES.ADMIN] },
-  { label: 'Uzytkownicy', path: '/admin/users', roles: [ROLES.ADMIN] },
+  { label: 'Użytkownicy', path: '/admin/users', roles: [ROLES.ADMIN] },
   { label: 'Kategorie', path: '/admin/categories', roles: [ROLES.ADMIN] },
   { label: 'Wszystkie tickety', path: '/admin/tickets', roles: [ROLES.ADMIN] },
   { label: 'Profil', path: '/user/profile', roles: [ROLES.USER, ROLES.AGENT, ROLES.ADMIN] },
