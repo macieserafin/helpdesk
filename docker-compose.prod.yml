@@ -60,6 +60,9 @@ services:
     image: caddy:2-alpine
     container_name: helpdesk-caddy
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
     ports:
