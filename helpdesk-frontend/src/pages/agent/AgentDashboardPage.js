@@ -14,7 +14,7 @@ const STATUS_ACTIONS = {
 };
 
 export async function AgentDashboardPage({ navigate, user, showToast }) {
-  const page = htmlToElement('<section class="page stack agent-dashboard"><div data-content></div></section>');
+  const page = htmlToElement('<section class="page agent-dashboard"><div class="stack" data-content></div></section>');
   const priorities = await agentApi.getAssignableTicketPriorities();
 
   async function load() {
@@ -37,7 +37,6 @@ export async function AgentDashboardPage({ navigate, user, showToast }) {
           <aside class="stack">
             ${renderHighPriority(dashboard.highPriorityTickets)}
             ${renderResolvedToday(dashboard.resolvedTodayTickets)}
-            ${renderSavedViews(dashboard)}
           </aside>
         </section>
       </div>
@@ -198,32 +197,6 @@ function renderResolvedToday(tickets = []) {
     compact: true,
     body: renderCompactTicketList(tickets, 'Zobacz')
   });
-}
-
-function renderSavedViews(dashboard) {
-  const views = [
-    ['Moje zgłoszenia', dashboard.assignedActive, '/agent/assigned'],
-    ['Nieprzypisane', dashboard.unassignedOpen, '/agent/tickets'],
-    ['Klient odpowiedział', dashboard.customerReplied, '/agent'],
-    ['Zakończone dzisiaj', dashboard.resolvedToday, '/agent']
-  ];
-
-  return `
-    <section class="card stack">
-      <div class="section-title">
-        <h2>Zapisane widoki</h2>
-      </div>
-      <div class="saved-view-list">
-        ${views.map(([label, count, route]) => `
-          <button class="saved-view-button" type="button" data-route="${route}">
-            <span>${escapeHtml(label)}</span>
-            <strong>${escapeHtml(count)}</strong>
-          </button>
-        `).join('')}
-      </div>
-      <small class="agent-last-update">Ostatnia aktywność: ${formatDateTime(dashboard.lastUpdatedAt)}</small>
-    </section>
-  `;
 }
 
 function renderQueueSection({ title, count, body, emptyTitle, emptyText, compact = false }) {

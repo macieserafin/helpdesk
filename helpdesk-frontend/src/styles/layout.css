@@ -26,10 +26,12 @@
   align-items: center;
   gap: var(--space-3);
   padding: 6px 8px var(--space-6);
+  min-width: 0;
 }
 
 .brand-mark {
   display: grid;
+  flex: 0 0 auto;
   width: 44px;
   height: 44px;
   place-items: center;
@@ -89,6 +91,7 @@
 }
 
 .side-dot {
+  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 99px;
@@ -96,7 +99,11 @@
 }
 
 .workspace {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
 }
 
 .topbar {
@@ -155,15 +162,18 @@
 }
 
 .content {
-  width: min(1480px, 100%);
+  flex: 1;
+  width: min(var(--content-max-width), 100%);
   margin: 0 auto;
   padding: var(--space-7);
 }
 
 .page,
-.stack {
+.stack,
+[data-content] {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--page-gap);
+  min-width: 0;
 }
 
 @keyframes slide {
@@ -197,6 +207,22 @@
 
   .content {
     padding: var(--space-5);
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 var(--space-5);
+  }
+
+  .content {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .page,
+  .stack,
+  [data-content] {
+    gap: var(--space-4);
   }
 }
 
@@ -262,9 +288,15 @@
   .content {
     padding: var(--space-4);
   }
+}
 
-  .page,
-  .stack {
-    gap: var(--space-4);
+@media (max-width: 360px) {
+  .content {
+    padding: var(--space-3);
+  }
+
+  .topbar {
+    padding: var(--space-3);
+    gap: var(--space-3);
   }
 }

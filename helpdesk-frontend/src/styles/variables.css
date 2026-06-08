@@ -23,4 +23,7 @@
   --space-6: 24px;
   --space-7: 32px;
   --sidebar-width: 264px;
+  --content-max-width: 1480px;
+  --page-gap: var(--space-5);
+  --card-gap: var(--space-4);
 }

@@ -17,7 +17,7 @@ import { getErrorMessage } from '../../utils/errorMessage.js';
 import { userLoginIdentifier } from '../../utils/userDisplay.js';
 
 export async function TicketDetailsPage({ params, user, showToast, navigate }) {
-  const page = htmlToElement('<section class="page stack"><div class="stack" data-content></div></section>');
+  const page = htmlToElement('<section class="page"><div class="stack" data-content></div></section>');
   const ticketId = params.id;
   const staffUser = hasRole(user, ROLES.AGENT) || hasRole(user, ROLES.ADMIN);
   const assignablePriorities = staffUser ? await agentApi.getAssignableTicketPriorities() : [];
