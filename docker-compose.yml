@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: helpdesk-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-helpdesk}
+      POSTGRES_USER: ${POSTGRES_USER:-helpdesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-helpdesk}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-helpdesk} -d ${POSTGRES_DB:-helpdesk}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - helpdesk
+
+  backend:
+    build:
+      context: ./helpdesk-api
+      dockerfile: Dockerfile
+    container_name: helpdesk-backend
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-helpdesk}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-helpdesk}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-helpdesk}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
+      APP_ATTACHMENTS_STORAGE_DIR: /app/uploads/attachments
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*,https://macieserafin.pl}
+      APP_SECURITY_BASIC_AUTH_ENABLED: ${APP_SECURITY_BASIC_AUTH_ENABLED:-false}
+    volumes:
+      - backend_uploads:/app/uploads/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - helpdesk
+
+  frontend:
+    build:
+      context: ./helpdesk-frontend
+      dockerfile: Dockerfile
+    container_name: helpdesk-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - helpdesk
+
+volumes:
+  postgres_data:
+  backend_uploads:
+
+networks:
+  helpdesk:
+    driver: bridge
