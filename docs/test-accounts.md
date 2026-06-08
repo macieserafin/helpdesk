@@ -1,5 +1,15 @@
 # Konta Testowe I Seed
 
+`APP_DEMO_SEED_ENABLED` jest przełącznikiem głównym. Poszczególne części seeda można włączać i wyłączać osobno:
+
+```env
+APP_DEMO_SEED_ACCOUNTS_ENABLED=true
+APP_DEMO_SEED_CATEGORIES_ENABLED=true
+APP_DEMO_SEED_TICKETS_ENABLED=true
+```
+
+Przykładowe tickety wymagają kont `user`/`agent` oraz aktywnych kategorii, więc przy `APP_DEMO_SEED_TICKETS_ENABLED=true` te dane muszą już istnieć albo też być seedowane.
+
 Backend tworzy dane demonstracyjne przez `SeedConfig`, jeśli `APP_DEMO_SEED_ENABLED=true`. Domyślnie seed jest włączony w konfiguracji lokalnej.
 
 ## Kolejność Seeda

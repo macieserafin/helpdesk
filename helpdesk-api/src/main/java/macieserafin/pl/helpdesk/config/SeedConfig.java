@@ -19,6 +19,9 @@ import org.springframework.core.annotation.Order;
 public class SeedConfig {
 
     private final boolean demoSeedEnabled;
+    private final boolean seedAccountsEnabled;
+    private final boolean seedCategoriesEnabled;
+    private final boolean seedTicketsEnabled;
     private final boolean requireCustomPasswords;
     private final String userPassword;
     private final String agentPassword;
@@ -26,11 +29,17 @@ public class SeedConfig {
 
     public SeedConfig(
             @Value("${app.demo.seed.enabled:true}") boolean demoSeedEnabled,
+            @Value("${app.demo.seed.accounts-enabled:true}") boolean seedAccountsEnabled,
+            @Value("${app.demo.seed.categories-enabled:true}") boolean seedCategoriesEnabled,
+            @Value("${app.demo.seed.tickets-enabled:true}") boolean seedTicketsEnabled,
             @Value("${app.demo.seed.require-custom-passwords:false}") boolean requireCustomPasswords,
             @Value("${app.demo.seed.user-password:user123}") String userPassword,
             @Value("${app.demo.seed.agent-password:agent123}") String agentPassword,
             @Value("${app.demo.seed.admin-password:admin123}") String adminPassword) {
         this.demoSeedEnabled = demoSeedEnabled;
+        this.seedAccountsEnabled = seedAccountsEnabled;
+        this.seedCategoriesEnabled = seedCategoriesEnabled;
+        this.seedTicketsEnabled = seedTicketsEnabled;
         this.requireCustomPasswords = requireCustomPasswords;
         this.userPassword = userPassword;
         this.agentPassword = agentPassword;
@@ -41,7 +50,7 @@ public class SeedConfig {
     @Order(1)
     CommandLineRunner seedUsers(UserService userService) {
         return args -> {
-            if (!demoSeedEnabled) {
+            if (!demoSeedEnabled || !seedAccountsEnabled) {
                 return;
             }
             validateDemoPasswords();
@@ -74,7 +83,7 @@ public class SeedConfig {
     @Order(2)
     CommandLineRunner seedCategories(CategoryService categoryService) {
         return args -> {
-            if (!demoSeedEnabled) {
+            if (!demoSeedEnabled || !seedCategoriesEnabled) {
                 return;
             }
 
@@ -90,7 +99,7 @@ public class SeedConfig {
     @Order(3)
     CommandLineRunner seedTickets(TicketService ticketService) {
         return args -> {
-            if (!demoSeedEnabled) {
+            if (!demoSeedEnabled || !seedTicketsEnabled) {
                 return;
             }
 

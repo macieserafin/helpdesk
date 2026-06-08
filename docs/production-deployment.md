@@ -42,6 +42,9 @@ APP_DEMO_SEED_USER_PASSWORD=tu_dlugie_losowe_haslo_user
 APP_DEMO_SEED_AGENT_PASSWORD=tu_dlugie_losowe_haslo_agent
 APP_DEMO_SEED_ADMIN_PASSWORD=tu_dlugie_losowe_haslo_admin
 APP_DEMO_SEED_REQUIRE_CUSTOM_PASSWORDS=true
+APP_DEMO_SEED_ACCOUNTS_ENABLED=true
+APP_DEMO_SEED_CATEGORIES_ENABLED=true
+APP_DEMO_SEED_TICKETS_ENABLED=true
 ```
 
 Jeśli nie chcesz kont demo w produkcji:
