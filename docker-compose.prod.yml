@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: helpdesk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - helpdesk
+
+  backend:
+    build:
+      context: ./helpdesk-api
+      dockerfile: Dockerfile
+    container_name: helpdesk-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      APP_ATTACHMENTS_STORAGE_DIR: /app/uploads/attachments
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS}
+      APP_SECURITY_BASIC_AUTH_ENABLED: "false"
+      APP_DEMO_SEED_ENABLED: ${APP_DEMO_SEED_ENABLED}
+      APP_DEMO_SEED_REQUIRE_CUSTOM_PASSWORDS: ${APP_DEMO_SEED_REQUIRE_CUSTOM_PASSWORDS}
+      APP_DEMO_SEED_USER_PASSWORD: ${APP_DEMO_SEED_USER_PASSWORD}
+      APP_DEMO_SEED_AGENT_PASSWORD: ${APP_DEMO_SEED_AGENT_PASSWORD}
+      APP_DEMO_SEED_ADMIN_PASSWORD: ${APP_DEMO_SEED_ADMIN_PASSWORD}
+    volumes:
+      - backend_uploads:/app/uploads/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - helpdesk
+
+  frontend:
+    build:
+      context: ./helpdesk-frontend
+      dockerfile: Dockerfile
+    container_name: helpdesk-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - helpdesk
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: helpdesk-caddy
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    networks:
+      - helpdesk
+
+volumes:
+  postgres_data:
+    name: helpdesk_prod_postgres_data
+  backend_uploads:
+    name: helpdesk_prod_backend_uploads
+  caddy_data:
+    name: helpdesk_prod_caddy_data
+  caddy_config:
+    name: helpdesk_prod_caddy_config
+
+networks:
+  helpdesk:
+    driver: bridge

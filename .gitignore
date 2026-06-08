@@ -18,6 +18,7 @@ target/
 
 # Runtime uploads
 uploads/
+backups/
 
 # OS files
 .DS_Store
