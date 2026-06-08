@@ -103,6 +103,77 @@ class TicketFlowIntegrationTests {
     }
 
     @Test
+    void shouldReturnAgentDashboardWorkQueues() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String loginIdentifier = "agent-dashboard-" + suffix;
+        String password = "agentdash123";
+        registerUser(loginIdentifier, password);
+
+        Long assignedTicketId = createTicket(loginIdentifier, password,
+                "Agent dashboard assigned " + suffix,
+                "Ticket z odpowiedzia klienta.",
+                "Konto");
+        Long takeoverTicketId = createTicket(loginIdentifier, password,
+                "Agent dashboard takeover " + suffix,
+                "Nieprzypisany ticket wysokiego priorytetu.",
+                "Aplikacja");
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/assign", assignedTicketId)
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/tickets/{id}/comments", assignedTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Prosze o dodatkowe informacje.",
+                                  "internal": false
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/tickets/{id}/comments", assignedTicketId)
+                        .with(httpBasic(loginIdentifier, password))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "Dosylam szczegoly sprawy.",
+                                  "internal": false
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(patch("/api/agent/tickets/{id}/priority", takeoverTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "HIGH"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        String responseBody = mockMvc.perform(get("/api/agent/dashboard")
+                        .with(httpBasic("agent", "agent123")))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode dashboard = objectMapper.readTree(responseBody);
+        assertThat(dashboard.get("assignedActive").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(dashboard.get("waitingForAgent").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(dashboard.get("customerReplied").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(dashboard.get("unassignedOpen").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(dashboard.get("highPriority").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(containsTicketId(dashboard.get("myQueue"), assignedTicketId)).isTrue();
+        assertThat(containsTicketId(dashboard.get("customerRepliedTickets"), assignedTicketId)).isTrue();
+        assertThat(containsTicketId(dashboard.get("takeoverQueue"), takeoverTicketId)).isTrue();
+        assertThat(containsTicketId(dashboard.get("highPriorityTickets"), takeoverTicketId)).isTrue();
+    }
+
+    @Test
     void shouldAuthenticateEndUserWithLoginIdentifierOrEmailAndRejectStaffEmail() throws Exception {
         mockMvc.perform(get("/api/users/me")
                         .with(httpBasic("user", "user123")))
@@ -1369,6 +1440,10 @@ class TicketFlowIntegrationTests {
         JsonNode root = objectMapper.readTree(responseBody);
         JsonNode tickets = root.has("content") ? root.get("content") : root;
 
+        return containsTicketId(tickets, ticketId);
+    }
+
+    private boolean containsTicketId(JsonNode tickets, Long ticketId) {
         for (JsonNode ticket : tickets) {
             if (ticket.get("id").asLong() == ticketId) {
                 return true;

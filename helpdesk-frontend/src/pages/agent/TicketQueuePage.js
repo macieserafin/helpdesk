@@ -22,7 +22,7 @@ export async function TicketQueuePage({ showToast }) {
 
   async function load() {
     const oldTable = page.querySelector('[data-table]') || page.querySelector('.table-wrap') || page.querySelector('.empty-state') || page.querySelector('.state-panel') || page.querySelector('.alert-error');
-    const loading = LoadingState('Ładowanie kolejki...');
+    const loading = LoadingState('Ładowanie zgłoszeń...');
     oldTable.replaceWith(loading);
 
     try {
@@ -61,7 +61,7 @@ export async function TicketQueuePage({ showToast }) {
       loading.replaceWith(table);
       (page.querySelector('[data-pagination]') || page.querySelector('.pagination')).replaceWith(pagination);
     } catch (error) {
-      const message = getErrorMessage(error, 'Nie udało się załadować kolejki.');
+      const message = getErrorMessage(error, 'Nie udało się załadować zgłoszeń.');
       showToast(message, 'error');
       loading.replaceWith(ErrorState(message));
     }
@@ -69,8 +69,8 @@ export async function TicketQueuePage({ showToast }) {
 
   page.querySelector('[data-header]').replaceWith(PageHeader({
     eyebrow: 'AGENT',
-    title: 'Kolejka ticketow',
-    description: 'Widok wszystkich zgloszen dostepnych dla zespolu wsparcia.'
+    title: 'Wszystkie zgłoszenia',
+    description: 'Widok wszystkich zgłoszeń dostępnych dla zespołu wsparcia.'
   }));
   await load();
   return page;

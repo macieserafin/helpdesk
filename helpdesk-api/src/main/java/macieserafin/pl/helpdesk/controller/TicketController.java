@@ -1,6 +1,7 @@
 package macieserafin.pl.helpdesk.controller;
 
 import jakarta.validation.Valid;
+import macieserafin.pl.helpdesk.dto.AgentDashboardResponse;
 import macieserafin.pl.helpdesk.dto.AttachmentDownload;
 import macieserafin.pl.helpdesk.dto.AttachmentResponse;
 import macieserafin.pl.helpdesk.dto.CommentResponse;
@@ -96,6 +97,11 @@ public class TicketController {
     @GetMapping("/agent/tickets/assignable-priorities")
     public List<TicketPriority> getAssignableTicketPriorities() {
         return List.of(TicketPriority.LOW, TicketPriority.MEDIUM, TicketPriority.HIGH, TicketPriority.CRITICAL);
+    }
+
+    @GetMapping("/agent/dashboard")
+    public AgentDashboardResponse getAgentDashboard(Principal principal) {
+        return ticketService.getAgentDashboard(principal.getName());
     }
 
     //pobieranuie konkretnego zgloszenia po ID

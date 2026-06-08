@@ -6,7 +6,7 @@ const NAV = [
   { label: 'Moje tickety', path: '/user/tickets', roles: [ROLES.USER] },
   { label: 'Nowy ticket', path: '/user/tickets/new', roles: [ROLES.USER] },
   { label: 'Dashboard', path: '/agent', roles: [ROLES.AGENT] },
-  { label: 'Kolejka', path: '/agent/tickets', roles: [ROLES.AGENT] },
+  { label: 'Wszystkie zgłoszenia', path: '/agent/tickets', roles: [ROLES.AGENT] },
   { label: 'Przypisane', path: '/agent/assigned', roles: [ROLES.AGENT] },
   { label: 'Dashboard', path: '/admin', roles: [ROLES.ADMIN] },
   { label: 'Użytkownicy', path: '/admin/users', roles: [ROLES.ADMIN] },

@@ -2,6 +2,7 @@ package macieserafin.pl.helpdesk.service;
 
 import macieserafin.pl.helpdesk.dto.AttachmentDownload;
 import macieserafin.pl.helpdesk.dto.AttachmentResponse;
+import macieserafin.pl.helpdesk.dto.AgentDashboardResponse;
 import macieserafin.pl.helpdesk.dto.CommentResponse;
 import macieserafin.pl.helpdesk.dto.CreateCommentRequest;
 import macieserafin.pl.helpdesk.dto.CreateTicketRequest;
@@ -46,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,6 +64,12 @@ public class TicketService {
             TicketStatus.CLOSED,
             TicketStatus.REJECTED,
             TicketStatus.CANCELLED
+    );
+
+    private static final Set<TicketStatus> ACTIVE_AGENT_STATUSES = EnumSet.of(
+            TicketStatus.OPEN,
+            TicketStatus.IN_PROGRESS,
+            TicketStatus.WAITING_FOR_USER
     );
 
     private static final Map<TicketStatus, Set<TicketStatus>> ALLOWED_STATUS_TRANSITIONS = Map.of(
@@ -113,6 +121,96 @@ public class TicketService {
 
         return ticketRepository.findAll(buildTicketSpecification(filter, null), pageable)
                 .map(this::mapToTicketResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public AgentDashboardResponse getAgentDashboard(String loginIdentifier) {
+        User agent = findUser(loginIdentifier);
+        checkHasAnyRole(agent, "AGENT", "ADMIN");
+
+        List<Ticket> tickets = ticketRepository.findAllByOrderByCreatedAtDesc();
+        LocalDate today = LocalDate.now();
+        LocalDateTime stuckThreshold = LocalDateTime.now().minusDays(7);
+
+        List<Ticket> assignedActive = tickets.stream()
+                .filter(ticket -> isAssignedAgent(agent, ticket))
+                .filter(this::isAgentActive)
+                .toList();
+        List<Ticket> unassignedOpen = tickets.stream()
+                .filter(ticket -> ticket.getAssignedTo() == null)
+                .filter(ticket -> ticket.getStatus() == TicketStatus.OPEN)
+                .toList();
+        List<Ticket> highPriority = tickets.stream()
+                .filter(this::isAgentActive)
+                .filter(this::isHighPriority)
+                .toList();
+        List<Ticket> waitingForAgent = assignedActive.stream()
+                .filter(ticket -> ticket.getStatus() == TicketStatus.OPEN
+                        || ticket.getStatus() == TicketStatus.IN_PROGRESS)
+                .toList();
+        List<Ticket> waitingForUser = assignedActive.stream()
+                .filter(ticket -> ticket.getStatus() == TicketStatus.WAITING_FOR_USER)
+                .toList();
+        List<Ticket> resolvedToday = tickets.stream()
+                .filter(ticket -> isAssignedAgent(agent, ticket))
+                .filter(ticket -> ticket.getResolvedAt() != null)
+                .filter(ticket -> ticket.getResolvedAt().toLocalDate().equals(today))
+                .toList();
+        List<Ticket> customerReplied = assignedActive.stream()
+                .filter(this::lastPublicCommentFromCustomer)
+                .toList();
+        List<Ticket> stuckTickets = tickets.stream()
+                .filter(this::isAgentActive)
+                .filter(ticket -> lastActivityAt(ticket).isBefore(stuckThreshold)
+                        || (ticket.getAssignedTo() == null && isHighPriority(ticket)))
+                .toList();
+
+        LocalDateTime lastUpdatedAt = tickets.stream()
+                .map(this::lastActivityAt)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        return new AgentDashboardResponse(
+                assignedActive.size(),
+                unassignedOpen.size(),
+                highPriority.size(),
+                waitingForAgent.size(),
+                waitingForUser.size(),
+                resolvedToday.size(),
+                customerReplied.size(),
+                stuckTickets.size(),
+                lastUpdatedAt,
+                assignedActive.stream()
+                        .sorted(agentQueueComparator())
+                        .limit(8)
+                        .map(this::mapToTicketResponse)
+                        .toList(),
+                unassignedOpen.stream()
+                        .sorted(agentQueueComparator())
+                        .limit(6)
+                        .map(this::mapToTicketResponse)
+                        .toList(),
+                customerReplied.stream()
+                        .sorted(Comparator.comparing(this::lastActivityAt).reversed())
+                        .limit(6)
+                        .map(this::mapToTicketResponse)
+                        .toList(),
+                stuckTickets.stream()
+                        .sorted(agentQueueComparator())
+                        .limit(6)
+                        .map(this::mapToTicketResponse)
+                        .toList(),
+                resolvedToday.stream()
+                        .sorted(Comparator.comparing((Ticket ticket) -> ticket.getResolvedAt()).reversed())
+                        .limit(6)
+                        .map(this::mapToTicketResponse)
+                        .toList(),
+                highPriority.stream()
+                        .sorted(agentQueueComparator())
+                        .limit(6)
+                        .map(this::mapToTicketResponse)
+                        .toList()
+        );
     }
 
     @Transactional
@@ -630,6 +728,58 @@ public class TicketService {
         }
 
         return lastActivityAt;
+    }
+
+    private Comparator<Ticket> agentQueueComparator() {
+        return Comparator.comparingInt(this::agentRiskRank).reversed()
+                .thenComparing(Comparator.comparingInt(this::priorityWeight).reversed())
+                .thenComparing(Comparator.comparing(this::lastActivityAt).reversed())
+                .thenComparing(Comparator.comparing(Ticket::getCreatedAt).reversed());
+    }
+
+    private int agentRiskRank(Ticket ticket) {
+        int rank = 0;
+        if (lastPublicCommentFromCustomer(ticket)) {
+            rank += 4;
+        }
+        if (ticket.getAssignedTo() == null && isHighPriority(ticket)) {
+            rank += 3;
+        }
+        if (lastActivityAt(ticket).isBefore(LocalDateTime.now().minusDays(7))) {
+            rank += 2;
+        }
+        if (ticket.getStatus() == TicketStatus.OPEN && ticket.getAssignedTo() == null) {
+            rank += 1;
+        }
+
+        return rank;
+    }
+
+    private boolean isAgentActive(Ticket ticket) {
+        return ACTIVE_AGENT_STATUSES.contains(ticket.getStatus());
+    }
+
+    private boolean isHighPriority(Ticket ticket) {
+        return ticket.getPriority() == TicketPriority.HIGH || ticket.getPriority() == TicketPriority.CRITICAL;
+    }
+
+    private int priorityWeight(Ticket ticket) {
+        return switch (ticket.getPriority()) {
+            case CRITICAL -> 5;
+            case HIGH -> 4;
+            case MEDIUM -> 3;
+            case LOW -> 2;
+            case UNASSIGNED -> 1;
+        };
+    }
+
+    private boolean lastPublicCommentFromCustomer(Ticket ticket) {
+        return ticket.getComments()
+                .stream()
+                .filter(comment -> !comment.isInternal())
+                .max(Comparator.comparing(Comment::getCreatedAt))
+                .map(comment -> isCustomer(comment.getAuthor()))
+                .orElse(false);
     }
 
     private boolean isPublicAttachment(Attachment attachment) {
