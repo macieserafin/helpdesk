@@ -1152,14 +1152,334 @@ textarea {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .button {
+    min-height: 36px;
+    padding: 7px 12px;
+    font-size: 0.92rem;
+  }
+
+  .button-small {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 0.8rem;
+  }
+
+  .card,
+  .metric-card {
+    padding: 14px;
+  }
+
+  .card.stack {
+    gap: 12px;
+  }
+
+  .page-header {
+    gap: 10px;
+  }
+
+  .page-header h1 {
+    margin-bottom: 4px;
+    font-size: 1.45rem;
+    line-height: 1.16;
+  }
+
+  .page-header p {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .eyebrow {
+    font-size: 0.7rem;
+  }
+
+  .metric-grid {
+    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  }
+
+  .user-metric-grid,
+  .agent-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-card {
+    min-height: auto;
+  }
+
+  .metric-card span {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
   .metric-card strong {
-    font-size: 1.65rem;
+    margin-top: 6px;
+    font-size: 1.55rem;
+  }
+
+  .dashboard-grid {
+    gap: 14px;
+  }
+
+  .empty-dashboard,
+  .empty-state,
+  .state-panel,
+  .alert {
+    padding: var(--space-4);
+  }
+
+  .empty-dashboard {
+    gap: 12px;
+  }
+
+  .section-title {
+    gap: 10px;
+  }
+
+  .section-title h2,
+  .card h2 {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .count-pill {
+    min-width: 28px;
+    min-height: 24px;
+    padding: 2px 8px;
+    font-size: 0.76rem;
+  }
+
+  .ticket-row-list,
+  .activity-list,
+  .quick-help-list,
+  .status-breakdown,
+  .agent-compact-list,
+  .saved-view-list {
+    gap: 8px;
+  }
+
+  .ticket-summary-row {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .ticket-summary-main {
+    gap: 6px;
+  }
+
+  .ticket-summary-main h3 {
+    font-size: 0.95rem;
+    line-height: 1.25;
+  }
+
+  .ticket-id {
+    font-size: 0.76rem;
+  }
+
+  .ticket-summary-meta {
+    gap: 4px;
+  }
+
+  .ticket-summary-meta span,
+  .ticket-summary-meta strong,
+  .agent-ticket-context {
+    font-size: 0.78rem;
+  }
+
+  .agent-compact-ticket,
+  .saved-view-button,
+  .quick-help-item,
+  .quiet-panel {
+    padding: 10px;
+  }
+
+  .quick-help-item {
+    gap: 3px;
+  }
+
+  .quick-help-item strong {
+    font-size: 0.94rem;
+  }
+
+  .quick-help-item span,
+  .empty-state p,
+  .state-panel p,
+  .quiet-panel p {
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .status-row {
+    gap: 6px;
+  }
+
+  .status-bar {
+    height: 6px;
+  }
+
+  .activity-item {
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .activity-marker {
+    width: 8px;
+    height: 8px;
+  }
+
+  .activity-heading span,
+  .activity-item small {
+    font-size: 0.76rem;
+  }
+
+  .activity-item p {
+    margin: 4px 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .badge-row,
+  .row-actions {
+    gap: 6px;
+  }
+
+  .badge {
+    min-height: 22px;
+    padding: 2px 7px;
+    font-size: 0.72rem;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 0.92rem;
+  }
+
+  label {
+    gap: 5px;
+    font-size: 0.9rem;
+  }
+
+  .filter-toggle {
+    min-height: 38px;
+    font-size: 0.92rem;
+  }
+
+  .filter-grid.filters-open .filter-body {
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .filter-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .filter-body input,
+  .filter-body select,
+  .filter-actions .button {
+    height: 38px;
+  }
+
+  tr {
+    padding: 10px;
+  }
+
+  tbody {
+    gap: 10px;
+  }
+
+  td {
+    grid-template-columns: minmax(86px, 32%) minmax(0, 1fr);
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.9rem;
+  }
+
+  td::before {
+    font-size: 0.7rem;
+  }
+
+  td .badge {
+    justify-self: start;
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  td[data-label="Tytuł"] .link-button {
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+
+  td[data-label="Akcje"]:has(.row-actions:empty) {
+    display: none;
+  }
+
+  .pagination {
+    gap: 10px;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .toast {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .confirm-dialog {
+    gap: 12px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .button {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.88rem;
+  }
+
+  .card,
+  .metric-card {
+    padding: 12px;
+  }
+
+  .page-header h1 {
+    font-size: 1.34rem;
+  }
+
+  .page-header p {
+    font-size: 0.88rem;
+  }
+
+  .metric-grid,
+  .user-metric-grid,
+  .agent-metric-grid {
+    gap: 8px;
+  }
+
+  .metric-card strong {
+    font-size: 1.38rem;
+  }
+
+  .metric-card span {
+    font-size: 0.74rem;
   }
 
   .section-title {
     align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
   }
 
   .section-title .button,
@@ -1167,9 +1487,55 @@ textarea {
     align-self: flex-start;
   }
 
+  .ticket-summary-row,
+  .agent-compact-ticket,
+  .saved-view-button {
+    padding: 10px;
+  }
+
+  .ticket-summary-main h3 {
+    font-size: 0.9rem;
+  }
+
+  .badge {
+    min-height: 21px;
+    padding: 2px 6px;
+    font-size: 0.68rem;
+  }
+
+  .filter-grid {
+    padding: 10px;
+  }
+
+  .filter-toggle {
+    min-height: 36px;
+  }
+
+  .filter-actions {
+    gap: 6px;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 36px;
+    padding: 7px 9px;
+    font-size: 0.88rem;
+  }
+
+  label {
+    font-size: 0.86rem;
+  }
+
+  tr {
+    padding: 9px;
+  }
+
   td {
-    grid-template-columns: 1fr;
-    gap: var(--space-1);
+    grid-template-columns: minmax(78px, 30%) minmax(0, 1fr);
+    gap: 7px;
+    padding: 5px 0;
+    font-size: 0.86rem;
   }
 
   .toast-host {
@@ -1192,5 +1558,14 @@ textarea {
   .agent-compact-ticket,
   .saved-view-button {
     padding: var(--space-3);
+  }
+
+  .filter-actions {
+    grid-template-columns: 1fr;
+  }
+
+  td {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
   }
 }
