@@ -19,6 +19,7 @@ import macieserafin.pl.helpdesk.model.enums.TicketStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import macieserafin.pl.helpdesk.service.TicketEventService;
 import macieserafin.pl.helpdesk.service.TicketService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
@@ -46,9 +48,11 @@ import java.util.List;
 @RequestMapping("/api")
 public class TicketController {
     private final TicketService ticketService;
+    private final TicketEventService ticketEventService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, TicketEventService ticketEventService) {
         this.ticketService = ticketService;
+        this.ticketEventService = ticketEventService;
     }
 
     //pobieranie wszystkich zgloszen przez admina
@@ -108,6 +112,12 @@ public class TicketController {
     @GetMapping("/tickets/{id}")
     public TicketResponse getTicket(@PathVariable Long id, Principal principal) {
         return ticketService.getTicket(id, principal.getName());
+    }
+
+    @GetMapping(value = "/tickets/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamTicketEvents(@PathVariable Long id, Principal principal) {
+        ticketService.getTicket(id, principal.getName());
+        return ticketEventService.subscribe(id);
     }
 
     //edycja danych ticketa

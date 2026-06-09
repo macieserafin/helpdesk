@@ -23,6 +23,8 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   const assignablePriorities = staffUser ? await agentApi.getAssignableTicketPriorities() : [];
   let editing = false;
   let categories = null;
+  let reloadingFromEvent = false;
+  let reloadTimeout = null;
 
   async function load() {
     const [ticket, comments, history, attachments] = await Promise.all([
@@ -207,5 +209,44 @@ export async function TicketDetailsPage({ params, user, showToast, navigate }) {
   }
 
   await load();
+  const ticketEvents = ticketApi.openTicketEvents(ticketId);
+  const closeTicketEvents = () => {
+    if (reloadTimeout) {
+      window.clearTimeout(reloadTimeout);
+    }
+    ticketEvents.close();
+  };
+  window.addEventListener('hashchange', closeTicketEvents, { once: true });
+
+  async function reloadAfterTicketChange() {
+    if (!page.isConnected || reloadingFromEvent) {
+      return;
+    }
+
+    reloadingFromEvent = true;
+    try {
+      editing = false;
+      await load();
+      showToast('Ticket zostal odswiezony po zmianie.', 'info');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Nie udalo sie odswiezyc ticketa po zmianie.'), 'error');
+    } finally {
+      reloadingFromEvent = false;
+    }
+  }
+
+  ticketEvents.addEventListener('ticket-change', () => {
+    if (reloadTimeout) {
+      window.clearTimeout(reloadTimeout);
+    }
+    reloadTimeout = window.setTimeout(reloadAfterTicketChange, 250);
+  });
+
+  ticketEvents.addEventListener('error', () => {
+    if (!page.isConnected) {
+      closeTicketEvents();
+    }
+  });
+
   return page;
 }

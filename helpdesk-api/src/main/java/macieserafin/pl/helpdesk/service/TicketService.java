@@ -90,6 +90,7 @@ public class TicketService {
     private final CommentRepository commentRepository;
     private final AttachmentRepository attachmentRepository;
     private final TicketHistoryRepository ticketHistoryRepository;
+    private final TicketEventService ticketEventService;
     private final Path attachmentStorageRoot;
 
     public TicketService(TicketRepository ticketRepository,
@@ -98,6 +99,7 @@ public class TicketService {
                          CommentRepository commentRepository,
                          AttachmentRepository attachmentRepository,
                          TicketHistoryRepository ticketHistoryRepository,
+                         TicketEventService ticketEventService,
                          @Value("${app.attachments.storage-dir:uploads/attachments}") String attachmentStorageDir) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
@@ -105,6 +107,7 @@ public class TicketService {
         this.commentRepository = commentRepository;
         this.attachmentRepository = attachmentRepository;
         this.ticketHistoryRepository = ticketHistoryRepository;
+        this.ticketEventService = ticketEventService;
         this.attachmentStorageRoot = Paths.get(attachmentStorageDir).toAbsolutePath().normalize();
     }
 
@@ -322,6 +325,7 @@ public class TicketService {
                     "Category changed: " + oldCategory + " -> " + newCategory.getName());
         }
 
+        ticketEventService.notifyTicketChanged(ticket.getId());
         return mapToTicketResponse(ticket);
     }
 
@@ -349,6 +353,7 @@ public class TicketService {
         saveHistory(ticket, agent, TicketHistoryActionType.PRIORITY_CHANGED, null, null,
                 oldPriority, newPriority, null, null, "Priority changed");
 
+        ticketEventService.notifyTicketChanged(ticket.getId());
         return mapToTicketResponse(ticket);
     }
 
@@ -377,6 +382,7 @@ public class TicketService {
                 oldStatus == newStatus ? null : newStatus,
                 null, null, oldAssignedTo, agent, "Ticket assigned");
 
+        ticketEventService.notifyTicketChanged(ticket.getId());
         return mapToTicketResponse(ticket);
     }
 
@@ -410,6 +416,7 @@ public class TicketService {
         saveHistory(ticket, actor, actionForStatus(newStatus), oldStatus, newStatus,
                 null, null, null, null, "Status changed");
 
+        ticketEventService.notifyTicketChanged(ticket.getId());
         return mapToTicketResponse(ticket);
     }
 
@@ -438,6 +445,7 @@ public class TicketService {
                 oldStatus == newStatus ? null : newStatus,
                 null, null, null, null, "Comment added");
 
+        ticketEventService.notifyTicketChanged(ticket.getId());
         return mapToCommentResponse(savedComment);
     }
 
@@ -511,6 +519,7 @@ public class TicketService {
         saveHistory(ticket, uploadedBy, TicketHistoryActionType.ATTACHMENT_ADDED,
                 null, null, null, null, null, null, "Attachment added: " + originalFileName);
 
+        ticketEventService.notifyTicketChanged(ticket.getId());
         return mapToAttachmentResponse(savedAttachment);
     }
 
@@ -567,6 +576,7 @@ public class TicketService {
         attachmentRepository.delete(attachment);
         saveHistory(ticket, user, TicketHistoryActionType.ATTACHMENT_DELETED,
                 null, null, null, null, null, null, "Attachment deleted: " + attachment.getFileName());
+        ticketEventService.notifyTicketChanged(ticket.getId());
 
         try {
             Files.deleteIfExists(filePath);

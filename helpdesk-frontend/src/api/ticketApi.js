@@ -1,4 +1,4 @@
-import { buildQuery, get, patch, post } from './httpClient.js';
+import { buildQuery, buildUrl, get, patch, post } from './httpClient.js';
 
 export function createTicket(payload) {
   return post('/api/tickets', payload);
@@ -38,4 +38,8 @@ export function getHistory(id) {
 
 export function updateStatus(id, status) {
   return patch(`/api/tickets/${id}/status`, { status });
+}
+
+export function openTicketEvents(id) {
+  return new EventSource(buildUrl(`/api/tickets/${id}/events`), { withCredentials: true });
 }
