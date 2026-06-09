@@ -20,18 +20,45 @@ jdbc:postgresql://postgres:5432/helpdesk
 Przy pracy bez pełnego Compose ustaw lokalne zmienne:
 
 ```bash
-$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/helpdesk"
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/helpdesk"
 $env:SPRING_DATASOURCE_USERNAME="helpdesk"
 $env:SPRING_DATASOURCE_PASSWORD="helpdesk"
 ```
 
-Utwórz bazę i użytkownika w PostgreSQL przed startem backendu. Schemat tabel tworzy Hibernate przez `spring.jpa.hibernate.ddl-auto=update`.
+Utwórz bazę i użytkownika w PostgreSQL przed startem backendu albo uruchom lokalną bazę z Dockera według sekcji poniżej. Schemat tabel tworzy Hibernate przez `spring.jpa.hibernate.ddl-auto=update`.
 
-Jeśli chcesz uruchomić samą bazę z Dockera:
+### PostgreSQL Z Dockera Dla IntelliJ IDEA
+
+Do pracy nad backendem uruchamianym lokalnie, na przykład z IntelliJ IDEA, można wystartować wyłącznie bazę PostgreSQL przez osobny plik `docker-compose.db.dev.yml`. Ten compose jest niezależny od pełnego i produkcyjnego Compose, nie uruchamia backendu ani frontendu.
+
+Start bazy:
 
 ```bash
-docker compose up postgres
+docker compose -f docker-compose.db.dev.yml up -d
 ```
+
+Zatrzymanie bazy:
+
+```bash
+docker compose -f docker-compose.db.dev.yml down
+```
+
+Pełny reset bazy z usunięciem danych:
+
+```bash
+docker compose -f docker-compose.db.dev.yml down -v
+docker compose -f docker-compose.db.dev.yml up -d
+```
+
+W IntelliJ IDEA ustaw zmienne środowiskowe dla konfiguracji uruchomieniowej backendu:
+
+```text
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/helpdesk
+SPRING_DATASOURCE_USERNAME=helpdesk
+SPRING_DATASOURCE_PASSWORD=helpdesk
+```
+
+Ten compose wystawia PostgreSQL na `localhost:5433`, dlatego backend uruchamiany poza Dockerem może połączyć się z bazą przez lokalny port. W kontenerze PostgreSQL nadal działa na porcie `5432`, ale port hosta `5433` pozwala uniknąć konfliktu z inną lokalną instalacją PostgreSQL.
 
 ## Backend
 
