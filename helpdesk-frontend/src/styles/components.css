@@ -303,6 +303,20 @@
 
 .agent-ticket-row {
   align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.agent-ticket-row:hover,
+.agent-ticket-row:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 12px 26px rgba(20, 66, 106, 0.12);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .agent-ticket-context {
@@ -312,34 +326,6 @@
   color: var(--color-muted);
   font-size: 0.84rem;
   font-weight: 700;
-}
-
-.agent-ticket-meta {
-  min-width: 230px;
-}
-
-.agent-quick-actions {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-}
-
-.agent-ticket-buttons {
-  justify-content: flex-end;
-}
-
-.agent-ticket-forms {
-  display: grid;
-  gap: 8px;
-}
-
-.agent-inline-action {
-  width: 100%;
-}
-
-.agent-inline-action .inline-form-row {
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
 }
 
 .category-badge {
@@ -994,14 +980,6 @@ textarea {
     text-align: left;
   }
 
-  .agent-ticket-meta {
-    min-width: 0;
-  }
-
-  .agent-ticket-buttons {
-    justify-content: flex-start;
-  }
-
   .span-2 {
     grid-column: auto;
   }
@@ -1049,8 +1027,7 @@ textarea {
     flex-direction: column;
   }
 
-  .ticket-summary-meta .row-actions,
-  .agent-quick-actions .row-actions {
+  .ticket-summary-meta .row-actions {
     align-items: stretch;
     flex-direction: column;
     width: 100%;
@@ -1060,7 +1037,6 @@ textarea {
     min-width: 0;
   }
 
-  .agent-inline-action .inline-form-row,
   .agent-compact-ticket,
   .saved-view-button {
     grid-template-columns: 1fr;

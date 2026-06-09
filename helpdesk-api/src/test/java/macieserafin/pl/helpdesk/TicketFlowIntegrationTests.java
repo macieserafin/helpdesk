@@ -122,6 +122,16 @@ class TicketFlowIntegrationTests {
                         .with(httpBasic("agent", "agent123")))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(patch("/api/agent/tickets/{id}/priority", assignedTicketId)
+                        .with(httpBasic("agent", "agent123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "priority": "CRITICAL"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
         mockMvc.perform(post("/api/tickets/{id}/comments", assignedTicketId)
                         .with(httpBasic("agent", "agent123"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -171,6 +181,8 @@ class TicketFlowIntegrationTests {
         assertThat(containsTicketId(dashboard.get("customerRepliedTickets"), assignedTicketId)).isTrue();
         assertThat(containsTicketId(dashboard.get("takeoverQueue"), takeoverTicketId)).isTrue();
         assertThat(containsTicketId(dashboard.get("highPriorityTickets"), takeoverTicketId)).isTrue();
+        assertThat(containsTicketId(dashboard.get("highPriorityTickets"), assignedTicketId)).isFalse();
+        assertThat(dashboard.get("highPriorityTickets")).allMatch(ticket -> ticket.get("assignedTo").isNull());
     }
 
     @Test

@@ -141,6 +141,7 @@ public class TicketService {
                 .filter(ticket -> ticket.getStatus() == TicketStatus.OPEN)
                 .toList();
         List<Ticket> highPriority = tickets.stream()
+                .filter(ticket -> ticket.getAssignedTo() == null)
                 .filter(this::isAgentActive)
                 .filter(this::isHighPriority)
                 .toList();
