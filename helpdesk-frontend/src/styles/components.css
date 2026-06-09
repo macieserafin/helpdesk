@@ -301,9 +301,7 @@
   font-size: 0.9rem;
 }
 
-.agent-ticket-row {
-  align-items: start;
-  grid-template-columns: minmax(0, 1fr);
+.ticket-open-row {
   cursor: pointer;
   transition:
     border-color 0.16s ease,
@@ -311,6 +309,17 @@
     transform 0.16s ease;
 }
 
+.agent-ticket-row {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.agent-compact-ticket.ticket-open-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ticket-open-row:hover,
+.ticket-open-row:focus-visible,
 .agent-ticket-row:hover,
 .agent-ticket-row:focus-visible {
   border-color: var(--color-primary);

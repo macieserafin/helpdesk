@@ -125,7 +125,7 @@ function renderHighPriority(tickets = []) {
     emptyTitle: 'Brak pilnych nieprzypisanych ticketów',
     emptyText: 'Nieprzypisane tickety HIGH i CRITICAL pojawią się tutaj.',
     compact: true,
-    body: renderCompactTicketList(tickets, 'Otwórz')
+    body: renderCompactTicketList(tickets)
   });
 }
 
@@ -136,7 +136,7 @@ function renderResolvedToday(tickets = []) {
     emptyTitle: 'Jeszcze nic nie rozwiązano dzisiaj',
     emptyText: 'Rozwiązane dzisiaj tickety przypisane do Ciebie będą widoczne tutaj.',
     compact: true,
-    body: renderCompactTicketList(tickets, 'Zobacz')
+    body: renderCompactTicketList(tickets)
   });
 }
 
@@ -165,7 +165,7 @@ function renderTicketCards(tickets) {
   return `
     <div class="ticket-row-list">
       ${tickets.map((ticket) => `
-        <article class="ticket-summary-row agent-ticket-row" data-ticket-id="${ticket.id}" role="button" tabindex="0">
+        <article class="ticket-summary-row agent-ticket-row ticket-open-row" data-ticket-id="${ticket.id}" role="button" tabindex="0">
           <div class="ticket-summary-main">
             <span class="ticket-id">#${ticket.id}</span>
             <h3>${escapeHtml(ticket.title)}</h3>
@@ -185,7 +185,7 @@ function renderTicketCards(tickets) {
   `;
 }
 
-function renderCompactTicketList(tickets = [], actionLabel) {
+function renderCompactTicketList(tickets = []) {
   if (!tickets.length) {
     return '';
   }
@@ -193,7 +193,7 @@ function renderCompactTicketList(tickets = [], actionLabel) {
   return `
     <div class="agent-compact-list">
       ${tickets.map((ticket) => `
-        <article class="agent-compact-ticket">
+        <article class="agent-compact-ticket ticket-open-row" data-ticket-id="${ticket.id}" role="button" tabindex="0">
           <div>
             <span class="ticket-id">#${ticket.id}</span>
             <strong>${escapeHtml(ticket.title)}</strong>
@@ -202,9 +202,6 @@ function renderCompactTicketList(tickets = [], actionLabel) {
               ${PriorityBadge(ticket.priority)}
             </div>
           </div>
-          <button class="button button-ghost button-small" type="button" data-ticket-id="${ticket.id}">
-            ${escapeHtml(actionLabel)}
-          </button>
         </article>
       `).join('')}
     </div>

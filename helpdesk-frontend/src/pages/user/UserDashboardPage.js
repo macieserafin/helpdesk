@@ -48,8 +48,18 @@ export async function UserDashboardPage({ navigate, user }) {
   page.querySelectorAll('[data-route]').forEach((button) => {
     button.addEventListener('click', () => navigate(button.dataset.route));
   });
-  page.querySelectorAll('[data-ticket-id]').forEach((button) => {
-    button.addEventListener('click', () => navigate(`/tickets/${button.dataset.ticketId}`));
+  page.querySelectorAll('[data-ticket-id]').forEach((element) => {
+    const openTicket = () => navigate(`/tickets/${element.dataset.ticketId}`);
+    element.addEventListener('click', openTicket);
+
+    if (element.tagName !== 'BUTTON') {
+      element.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openTicket();
+        }
+      });
+    }
   });
   page.querySelectorAll('[data-new-category]').forEach((button) => {
     button.addEventListener('click', () => navigate('/user/tickets/new'));
@@ -97,7 +107,7 @@ function renderActionRequired(tickets = []) {
         <h2>Wymagają mojej reakcji</h2>
         <span class="count-pill">${tickets.length}</span>
       </div>
-      ${tickets.length ? renderTicketCards(tickets, actionCopy) : `
+      ${tickets.length ? renderTicketCards(tickets) : `
         <div class="quiet-panel">
           <strong>Brak spraw do reakcji</strong>
           <p>Gdy support poprosi o doprecyzowanie albo oznaczy sprawę jako rozwiązaną, zobaczysz ją tutaj.</p>
@@ -114,7 +124,7 @@ function renderLatestTickets(tickets = []) {
         <h2>Ostatnie zgłoszenia</h2>
         <button class="button button-secondary button-small" type="button" data-route="/user/tickets">Pokaż wszystkie</button>
       </div>
-      ${tickets.length ? renderTicketCards(tickets, () => 'Przejdź do szczegółów') : `
+      ${tickets.length ? renderTicketCards(tickets) : `
         <div class="quiet-panel">
           <strong>Lista jest pusta</strong>
           <p>Nowe zgłoszenia pojawią się tutaj po utworzeniu pierwszej sprawy.</p>
@@ -124,11 +134,11 @@ function renderLatestTickets(tickets = []) {
   `;
 }
 
-function renderTicketCards(tickets, actionLabel) {
+function renderTicketCards(tickets) {
   return `
     <div class="ticket-row-list">
       ${tickets.map((ticket) => `
-        <article class="ticket-summary-row">
+        <article class="ticket-summary-row ticket-open-row" data-ticket-id="${ticket.id}" role="button" tabindex="0">
           <div class="ticket-summary-main">
             <span class="ticket-id">#${ticket.id}</span>
             <h3>${escapeHtml(ticket.title)}</h3>
@@ -141,9 +151,6 @@ function renderTicketCards(tickets, actionLabel) {
           <div class="ticket-summary-meta">
             <span>Aktualizacja</span>
             <strong>${formatDateTime(ticket.updatedAt || ticket.createdAt)}</strong>
-            <button class="button button-ghost button-small" type="button" data-ticket-id="${ticket.id}">
-              ${escapeHtml(actionLabel(ticket))}
-            </button>
           </div>
         </article>
       `).join('')}
@@ -235,14 +242,6 @@ function renderQuickHelp(categories = []) {
       `}
     </section>
   `;
-}
-
-function actionCopy(ticket) {
-  if (ticket.status === 'RESOLVED') {
-    return 'Zamknij lub wznów';
-  }
-
-  return 'Odpowiedz supportowi';
 }
 
 function activityTypeLabel(type) {
