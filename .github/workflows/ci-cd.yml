@@ -99,6 +99,7 @@ jobs:
           set -euo pipefail
           compose() { docker compose -p helpdesk-smoke --env-file ops/ci.env -f compose.prod.yml "$@"; }
           trap 'compose down -v' EXIT
+          compose pull postgres
           compose up -d --pull never --wait --wait-timeout 240 || { compose logs --tail=100; exit 1; }
           curl -fsS --max-time 15 http://127.0.0.1:3001/ > /dev/null
           curl -fsS --max-time 15 http://127.0.0.1:3001/api/health > /dev/null
