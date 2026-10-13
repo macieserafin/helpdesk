@@ -23,6 +23,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 class BasicAuthDisabledIntegrationTests {
+    @Autowired
+    private org.springframework.web.context.WebApplicationContext context;
+
+    @org.junit.jupiter.api.BeforeEach
+    void includeCsrfInRequests() {
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup(context)
+                .apply(org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity())
+                .defaultRequest(get("/").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .build();
+    }
 
     @Autowired
     private MockMvc mockMvc;

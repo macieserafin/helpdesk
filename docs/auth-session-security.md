@@ -81,14 +81,7 @@ Można go włączyć zmienną środowiskową, ale model aplikacji przeglądarkow
 
 ## CSRF
 
-CSRF jest obecnie wyłączony w `SecurityConfig`.
-
-To decyzja techniczna na obecnym etapie projektu, ponieważ frontend używa własnych requestów `fetch` i nie ma jeszcze przepływu tokenu CSRF. Przed produkcyjnym utwardzeniem aplikacji trzeba dodać pełny mechanizm:
-
-- endpoint albo cookie wystawiające token,
-- odczyt tokenu przez frontend,
-- nagłówek CSRF w requestach `POST`, `PATCH`, `PUT` i `DELETE`,
-- walidację tokenu w Spring Security.
+Ochrona CSRF jest włączona. Frontend pobiera token sesji przez GET /api/auth/csrf przed każdym żądaniem zmieniającym dane, również logowaniem, wylogowaniem i uploadem. Wysyła token w nagłówku X-CSRF-TOKEN; Spring Security odrzuca brakujący lub niepoprawny token. Ponowne pobranie obsługuje zmianę tokenu po logowaniu i wylogowaniu.
 
 ## Logowanie Przez Email
 
@@ -127,7 +120,7 @@ Scenariusz testowy:
 
 ## Ryzyka Do Zamknięcia Przed Produkcją
 
-- dodać CSRF token flow,
+- skonfigurować ograniczenie prób logowania i rejestracji,
 - zawęzić CORS do realnych domen,
 - ustawić produkcyjne parametry cookie,
 - wymusić HTTPS,

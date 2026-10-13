@@ -44,10 +44,11 @@ public class SecurityConfig {
                                             UserService userService,
                                             ObjectMapper objectMapper) throws Exception {
         http
+                .addFilterBefore(new AccountStatusFilter(userService), org.springframework.security.web.access.intercept.AuthorizationFilter.class)
                 .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/").permitAll()
+                        .requestMatchers("/", "/api/health", "/api/auth/csrf").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/logout", "/api/auth/register").permitAll()
                         .requestMatchers("/user", "/user/**").hasRole("USER")
                         .requestMatchers("/agent", "/agent/**").hasRole("AGENT")

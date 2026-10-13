@@ -1,5 +1,9 @@
 # Produkcyjny Deploy Na VPS
 
+> Ten dokument opisuje wcześniejszy wariant Caddy. Aktualny proces CI/CD zgodny
+> z poradnikiem VPS i currency-monitor znajduje się w [ops/DEPLOYMENT.md](../ops/DEPLOYMENT.md).
+> Nie uruchamiaj obu wariantów dla tej samej instalacji.
+
 Produkcja używa `docker-compose.prod.yml`. Publiczny ruch przyjmuje Caddy na portach `80` i `443`. Backend, PostgreSQL i frontendowy nginx działają w prywatnej sieci Dockera.
 
 ## Założenia

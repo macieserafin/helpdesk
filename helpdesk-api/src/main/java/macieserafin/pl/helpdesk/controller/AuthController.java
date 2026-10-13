@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.Map;
+import org.springframework.security.web.csrf.CsrfToken;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,6 +23,11 @@ public class AuthController {
 
     public AuthController(UserService userService) {
         this.userService = userService;
+    }
+
+    @GetMapping("/csrf")
+    public Map<String, String> csrf(CsrfToken token) {
+        return Map.of("token", token.getToken(), "headerName", token.getHeaderName());
     }
 
     @PostMapping("/register")

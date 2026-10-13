@@ -503,9 +503,9 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid file name");
         }
 
-        try {
+        try (var input = file.getInputStream()) {
             Files.createDirectories(ticketDirectory);
-            Files.copy(file.getInputStream(), storedFilePath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(input, storedFilePath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
             throw new UncheckedIOException("Could not store attachment", exception);
         }
@@ -573,6 +573,9 @@ public class TicketService {
         }
 
         Path filePath = Paths.get(attachment.getFilePath()).toAbsolutePath().normalize();
+        if (!filePath.startsWith(attachmentStorageRoot)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid attachment path");
+        }
         attachmentRepository.delete(attachment);
         saveHistory(ticket, user, TicketHistoryActionType.ATTACHMENT_DELETED,
                 null, null, null, null, null, null, "Attachment deleted: " + attachment.getFileName());
@@ -1152,6 +1155,9 @@ public class TicketService {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attachment file is required");
         }
+        if (file.getSize() > 10L * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Attachment exceeds 10 MB");
+        }
     }
 
     private String sanitizeFileName(String fileName) {
@@ -1166,10 +1172,17 @@ public class TicketService {
     }
 
     private String resolveContentType(MultipartFile file) {
-        return hasText(file.getContentType()) ? file.getContentType() : "application/octet-stream";
+        // Keep syntactically valid metadata; never use it as the download type.
+        String type = file.getContentType();
+        if (type == null || type.length() > 100) return "application/octet-stream";
+        try {
+            return org.springframework.http.MediaType.parseMediaType(type).toString();
+        } catch (IllegalArgumentException exception) {
+            return "application/octet-stream";
+        }
     }
 
     private String resolveContentType(Attachment attachment) {
-        return hasText(attachment.getContentType()) ? attachment.getContentType() : "application/octet-stream";
+        return "application/octet-stream";
     }
 }

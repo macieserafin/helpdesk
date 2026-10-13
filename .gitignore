@@ -23,3 +23,18 @@ backups/
 # OS files
 .DS_Store
 Thumbs.db
+
+*.pem
+*.key
+*.local.md
+private-docs/
+private_docs/
+pricate-docs/
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+admin-credentials*
+vps-known-hosts*
+tmp/

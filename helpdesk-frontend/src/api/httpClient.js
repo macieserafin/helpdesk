@@ -55,6 +55,16 @@ export async function request(path, options = {}) {
     headers
   };
 
+  if (!['GET', 'HEAD', 'OPTIONS'].includes((config.method || 'GET').toUpperCase())) {
+    // Fetch a current session token, also after login/logout rotates the token.
+    const tokenResponse = await fetch(buildUrl('/api/auth/csrf'), { credentials: 'include', cache: 'no-store' });
+    if (!tokenResponse.ok) {
+      throw new ApiError('Nie udało się zabezpieczyć żądania. Odśwież stronę.', tokenResponse.status);
+    }
+    const token = await tokenResponse.json();
+    headers.set(token.headerName, token.token);
+  }
+
   if (config.body && !(config.body instanceof FormData) && !(config.body instanceof URLSearchParams)) {
     headers.set('Content-Type', 'application/json');
     config.body = JSON.stringify(config.body);

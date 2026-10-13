@@ -48,6 +48,10 @@ export async function UserDashboardPage({ navigate, user }) {
   page.querySelectorAll('[data-route]').forEach((button) => {
     button.addEventListener('click', () => navigate(button.dataset.route));
   });
+  page.querySelectorAll('[data-status-width]').forEach((bar) => {
+    const width = Math.min(100, Math.max(0, Number(bar.dataset.statusWidth) || 0));
+    bar.style.width = `${width}%`;
+  });
   page.querySelectorAll('[data-ticket-id]').forEach((element) => {
     const openTicket = () => navigate(`/tickets/${element.dataset.ticketId}`);
     element.addEventListener('click', openTicket);
@@ -174,7 +178,7 @@ function renderStatusBreakdown(statusBreakdown = {}) {
                 ${StatusBadge(status)}
                 <strong>${count}</strong>
               </div>
-              <span class="status-bar"><span style="width: ${width}%"></span></span>
+              <span class="status-bar"><span data-status-width="${width}"></span></span>
             </div>
           `;
         }).join('')}

@@ -1,0 +1,81 @@
+name: helpdesk
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    mem_limit: 512m
+    logging: *logging
+
+  backend:
+    image: ghcr.io/${IMAGE_NAMESPACE:?Set IMAGE_NAMESPACE}/helpdesk-backend:${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:?Set production origin}
+      APP_DEMO_SEED_ENABLED: ${APP_DEMO_SEED_ENABLED:-false}
+      APP_DEMO_SEED_ADMIN_ONLY: "true"
+      APP_DEMO_SEED_ADMIN_EMAIL: ${APP_DEMO_SEED_ADMIN_EMAIL:-admin@example.com}
+      APP_DEMO_SEED_ACCOUNTS_ENABLED: ${APP_DEMO_SEED_ACCOUNTS_ENABLED:-true}
+      APP_DEMO_SEED_CATEGORIES_ENABLED: ${APP_DEMO_SEED_CATEGORIES_ENABLED:-true}
+      APP_DEMO_SEED_TICKETS_ENABLED: ${APP_DEMO_SEED_TICKETS_ENABLED:-false}
+      APP_DEMO_SEED_REQUIRE_CUSTOM_PASSWORDS: "true"
+      APP_DEMO_SEED_USER_PASSWORD: ${APP_DEMO_SEED_USER_PASSWORD:-}
+      APP_DEMO_SEED_AGENT_PASSWORD: ${APP_DEMO_SEED_AGENT_PASSWORD:-}
+      APP_DEMO_SEED_ADMIN_PASSWORD: ${APP_DEMO_SEED_ADMIN_PASSWORD:-}
+      APP_ATTACHMENTS_STORAGE_DIR: /app/uploads/attachments
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65.0
+    volumes:
+      - backend_uploads:/app/uploads/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, -fsS, --max-time, "5", http://127.0.0.1:8080/api/health]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 60s
+    mem_limit: 768m
+    logging: *logging
+
+  frontend:
+    image: ghcr.io/${IMAGE_NAMESPACE:?Set IMAGE_NAMESPACE}/helpdesk-frontend:${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-3001}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/api/health]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 128m
+    logging: *logging
+
+volumes:
+  postgres_data:
+  backend_uploads:

@@ -1,0 +1,192 @@
+name: CI and deployment
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helpdesk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  operations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      IMAGE_NAMESPACE: example-owner
+      IMAGE_TAG: validation
+      POSTGRES_DB: helpdesk
+      POSTGRES_USER: helpdesk
+      POSTGRES_PASSWORD: temporary-ci-database-password
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n ops/deploy.sh ops/backup.sh
+      - run: python3 -m unittest discover -s ops/tests -v
+      - run: docker compose --env-file ops/ci.env -f compose.prod.yml config --quiet
+
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: helpdesk-api/pom.xml
+      - name: Tests and coverage
+        working-directory: helpdesk-api
+        run: bash ./mvnw -B verify
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: helpdesk-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: helpdesk-frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  images:
+    needs: [operations, backend, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_NAMESPACE: local-ci
+      IMAGE_TAG: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./helpdesk-api
+          load: true
+          push: false
+          platforms: linux/amd64
+          tags: ghcr.io/local-ci/helpdesk-backend:ci
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./helpdesk-frontend
+          load: true
+          push: false
+          platforms: linux/amd64
+          tags: ghcr.io/local-ci/helpdesk-frontend:ci
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+      - name: Test production images and migrations
+        run: |
+          set -euo pipefail
+          compose() { docker compose -p helpdesk-smoke --env-file ops/ci.env -f compose.prod.yml "$@"; }
+          trap 'compose down -v' EXIT
+          compose up -d --pull never --wait --wait-timeout 240 || { compose logs --tail=100; exit 1; }
+          curl -fsS --max-time 15 http://127.0.0.1:3001/ > /dev/null
+          curl -fsS --max-time 15 http://127.0.0.1:3001/api/health > /dev/null
+      - uses: docker/login-action@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested images
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          for component in backend frontend; do
+            image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/helpdesk-$component:$GITHUB_SHA"
+            docker tag "ghcr.io/local-ci/helpdesk-$component:ci" "$image"
+            docker push "$image"
+          done
+
+  deploy:
+    needs: images
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
+      APP_PORT: ${{ vars.APP_PORT || '3001' }}
+      RELEASE_SHA: ${{ github.sha }}
+      REGISTRY_USER: ${{ github.actor }}
+      REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${PUBLIC_URL:?Set the PUBLIC_URL GitHub Actions variable}"
+          [[ "$PUBLIC_URL" == https://* ]]
+          : "${VPS_HOST:?Missing VPS_HOST}"
+          : "${VPS_USER:?Missing VPS_USER}"
+          : "${VPS_SSH_KEY:?Missing VPS_SSH_KEY}"
+          : "${VPS_KNOWN_HOSTS:?Missing VPS_KNOWN_HOSTS}"
+          trim_value() {
+            local value="$1"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            printf '%s' "$value"
+          }
+          VPS_USER="$(trim_value "$VPS_USER")"
+          VPS_HOST="$(trim_value "$VPS_HOST")"
+          if [[ ! "$VPS_USER" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]]; then
+            echo 'Invalid VPS_USER: enter only the Linux username, without spaces, hostname or SSH command.' >&2
+            exit 1
+          fi
+          if [[ ! "$VPS_HOST" =~ ^[a-zA-Z0-9.:_-]+$ ]]; then
+            echo 'Invalid VPS_HOST: enter only the server IP or hostname, without spaces or a URL scheme.' >&2
+            exit 1
+          fi
+          printf 'VPS_USER=%s\nVPS_HOST=%s\n' "$VPS_USER" "$VPS_HOST" >> "$GITHUB_ENV"
+          [[ "$VPS_SSH_PORT" =~ ^[0-9]{1,5}$ ]] && (( 10#$VPS_SSH_PORT >= 1 && 10#$VPS_SSH_PORT <= 65535 ))
+          [[ "$APP_PORT" =~ ^[0-9]{1,5}$ ]] && (( 10#$APP_PORT >= 1024 && 10#$APP_PORT <= 65535 ))
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          ssh-keygen -y -P '' -f ~/.ssh/id_ed25519 > /dev/null
+      - name: Upload release and deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          target="$VPS_USER@$VPS_HOST"
+          tar -czf - compose.prod.yml ops/deploy.sh ops/backup.sh |
+            ssh -p "$VPS_SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$target" \
+              "umask 077; mkdir -p ~/apps/helpdesk/releases/$RELEASE_SHA; tar -xzf - -C ~/apps/helpdesk/releases/$RELEASE_SHA"
+          printf '%s' "$REGISTRY_TOKEN" |
+            ssh -p "$VPS_SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$target" \
+              "bash ~/apps/helpdesk/releases/$RELEASE_SHA/ops/deploy.sh '$RELEASE_SHA' '$REGISTRY_USER' '${GITHUB_REPOSITORY_OWNER,,}' '$APP_PORT'"
+      - name: Check public website and API
+        run: |
+          curl -fsS --retry 5 --retry-delay 5 --max-time 20 "${PUBLIC_URL%/}/" > /dev/null
+          curl -fsS --retry 5 --retry-delay 5 --max-time 20 "${PUBLIC_URL%/}/api/health" > /dev/null

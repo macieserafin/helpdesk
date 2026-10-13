@@ -5,3 +5,15 @@ target/
 *.iml
 uploads/
 .mvn/wrapper/maven-wrapper.jar
+
+.env
+.env.*
+*.pem
+*.key
+backups/
+private-docs/
+private_docs/
+pricate-docs/
+admin-credentials*
+id_rsa*
+id_ed25519*

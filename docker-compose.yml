@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: helpdesk-backend
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-helpdesk}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-helpdesk}
@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile
     container_name: helpdesk-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
     networks:

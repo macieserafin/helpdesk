@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+    @org.springframework.beans.factory.annotation.Value("${app.security.min-password-length:12}")
+    private int minimumPasswordLength;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -82,7 +84,7 @@ public class UserService {
 
         String loginIdentifier = requireText(request.getLoginIdentifier(), "Login identifier is required");
         String email = requireText(request.getEmail(), "Email is required");
-        String password = requireText(request.getPassword(), "Password is required");
+        String password = requirePassword(request.getPassword());
 
         if (userRepository.existsByLoginIdentifier(loginIdentifier)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -105,8 +107,7 @@ public class UserService {
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
-        if (!requireText(request.getPassword(), "Password is required")
-                .equals(requireText(request.getConfirmPassword(), "Confirm password is required"))) {
+        if (!requirePassword(request.getPassword()).equals(request.getConfirmPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Passwords do not match");
         }
 
@@ -151,7 +152,7 @@ public class UserService {
         }
 
         if (request.getPassword() != null) {
-            String password = requireText(request.getPassword(), "Password is required");
+            String password = requirePassword(request.getPassword());
             user.setPasswordHash(passwordEncoder.encode(password));
         }
 
@@ -317,6 +318,9 @@ public class UserService {
             value = value.substring("ROLE_".length());
         }
 
+        if (!Set.of("USER", "AGENT", "ADMIN").contains(value)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported role");
+        }
         return value;
     }
 
@@ -383,6 +387,17 @@ public class UserService {
         }
 
         return value.trim();
+    }
+
+    private String requirePassword(String value) {
+        if (value == null || value.isBlank() || value.length() < minimumPasswordLength) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Password must be at least " + minimumPasswordLength + " characters");
+        }
+        if (value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must not exceed 72 UTF-8 bytes");
+        }
+        return value;
     }
 
     private boolean hasText(String value) {

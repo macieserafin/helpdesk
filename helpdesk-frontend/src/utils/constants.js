@@ -1,9 +1,9 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || '';
 
 export const FIELD_LIMITS = {
   loginIdentifier: { min: 3, max: 50 },
   email: { max: 100 },
-  password: { min: 6, max: 100 },
+  password: { min: 12, max: 72 },
   roleName: { max: 30 },
   profile: {
     firstName: { max: 50 },

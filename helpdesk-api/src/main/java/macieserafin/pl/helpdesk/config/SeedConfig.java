@@ -17,6 +17,10 @@ import org.springframework.core.annotation.Order;
 
 @Configuration
 public class SeedConfig {
+    @Value("${app.demo.seed.admin-only:false}")
+    private boolean adminOnly;
+    @Value("${app.demo.seed.admin-email:admin@example.com}")
+    private String adminEmail;
 
     private final boolean demoSeedEnabled;
     private final boolean seedAccountsEnabled;
@@ -54,7 +58,7 @@ public class SeedConfig {
                 return;
             }
             validateDemoPasswords();
-
+            if (!adminOnly) {
             userService.createUserIfMissing(
                     "user",
                     "user@example.com",
@@ -69,9 +73,10 @@ public class SeedConfig {
                     "AGENT",
                     new UserProfile("Anna", "Nowak", "+48 500 200 200", "Krakow", "Dluga 5", "31-147")
             );
+            }
             userService.createUserIfMissing(
                     "admin",
-                    "admin@example.com",
+                    adminEmail,
                     adminPassword,
                     "ADMIN",
                     new UserProfile("Piotr", "Zielinski", "+48 500 300 300", "Gdansk", "Grunwaldzka 20", "80-236")
@@ -99,7 +104,7 @@ public class SeedConfig {
     @Order(3)
     CommandLineRunner seedTickets(TicketService ticketService) {
         return args -> {
-            if (!demoSeedEnabled || !seedTicketsEnabled) {
+            if (!demoSeedEnabled || !seedTicketsEnabled || adminOnly) {
                 return;
             }
 
@@ -118,8 +123,10 @@ public class SeedConfig {
             return;
         }
 
-        validateCustomPassword("APP_DEMO_SEED_USER_PASSWORD", userPassword, "user123");
-        validateCustomPassword("APP_DEMO_SEED_AGENT_PASSWORD", agentPassword, "agent123");
+        if (!adminOnly) {
+            validateCustomPassword("APP_DEMO_SEED_USER_PASSWORD", userPassword, "user123");
+            validateCustomPassword("APP_DEMO_SEED_AGENT_PASSWORD", agentPassword, "agent123");
+        }
         validateCustomPassword("APP_DEMO_SEED_ADMIN_PASSWORD", adminPassword, "admin123");
     }
 

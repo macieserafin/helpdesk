@@ -1,5 +1,9 @@
 # Helpdesk
 
+Automatyczne wdrożenie VPS przez GitHub Actions, GHCR i Nginx opisuje
+[ops/DEPLOYMENT.md](ops/DEPLOYMENT.md). Używa `compose.prod.yml` oraz konta admin
+z prywatnym hasłem. Starszy wariant Caddy w `docker-compose.prod.yml` jest alternatywą.
+
 Helpdesk to aplikacja do obsługi zgłoszeń serwisowych. Repozytorium zawiera backend Spring Boot, frontend Vite oraz konfiguracje Docker Compose dla pracy lokalnej i prostego wdrożenia na VPS.
 
 System obsługuje trzy role:

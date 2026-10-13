@@ -4,3 +4,15 @@ dist/
 .git/
 .gitignore
 *.iml
+
+.env
+.env.*
+*.pem
+*.key
+backups/
+private-docs/
+private_docs/
+pricate-docs/
+admin-credentials*
+id_rsa*
+id_ed25519*
