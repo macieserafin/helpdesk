@@ -1,37 +1,103 @@
-# Dokumentacja Helpdesk
+# Dokumentacja Helpdesk / Helpdesk documentation
 
-Katalog `docs` opisuje aktualny stan projektu na podstawie kodu, konfiguracji i plików uruchomieniowych. Polecam najpiew zacząć od architektury, potem przejść przez domene zgłoszeń, API i uruchomienie lokalne.
+[Polski](#polski) | [English](#english)
 
-## Start
+## Polski
 
-- [project-structure.md](./project-structure.md): architektura systemu, moduły i przepływy.
-- [project-files.md](./project-files.md): przewodnik po najważniejszych plikach.
-- [local-development.md](./local-development.md): uruchomienie backendu i frontendu bez Dockera.
-- [docker-local-development.md](./docker-local-development.md): lokalny stos przez Docker Compose.
-- [test-accounts.md](./test-accounts.md): konta demo i dane seedowane.
+Wybierz temat według tego, co chcesz zrobić. Najkrótsza instrukcja uruchomienia jest w [głównym README](../README.md#polski).
 
-## Domena I API
+<a id="pl-uruchomienie-i-praca-lokalna"></a>
 
-- [frontend-architecture.md](./frontend-architecture.md): routing, widoki, komponenty, API client i stan SPA.
-- [domain-ticket-flow.md](./domain-ticket-flow.md): proces od utworzenia zgłoszenia do zamknięcia.
-- [ticket-workflow.md](./ticket-workflow.md): statusy, priorytety i reguły przejść.
-- [api-overview.md](./api-overview.md): konwencje API, autoryzacja i kontrakty.
-- [backend-api.md](./backend-api.md): pełny katalog endpointów REST.
-- [database-model.md](./database-model.md): encje, relacje i przechowywanie danych.
+### Uruchomienie i praca lokalna
 
-## Bezpieczeństwo I Role
+| Dokument | Co znajdziesz |
+| --- | --- |
+| [Docker](development/docker.md#polski) | Ustawienia Compose, porty, logi, wolumeny i reset danych |
+| [Backend i frontend osobno](development/local.md#polski) | Baza dla IDE, zmienne środowiskowe, testy i budowanie aplikacji |
+| [Dane demonstracyjne](development/demo-data.md#polski) | Tworzenie danych początkowych, przykładowe sprawy i testowanie ról |
 
-- [auth-session-security.md](./auth-session-security.md): logowanie sesyjne, cookie, CORS i CSRF.
-- [roles-and-permissions.md](./roles-and-permissions.md): macierz ról, endpointów i operacji biznesowych.
+<a id="pl-zasady-działania-i-api"></a>
 
-## Operacje
+### Zasady działania i API
 
-- [production-deployment.md](./production-deployment.md): wdrożenie na VPS z Caddy.
-- [roadmap.md](./roadmap.md): stan obecny, braki i kolejność dalszych prac.
+| Dokument | Co znajdziesz |
+| --- | --- |
+| [Przebieg zgłoszenia](reference/tickets.md#polski) | Statusy, przejścia, priorytety, komentarze i historia |
+| [Role i uprawnienia](reference/roles.md#polski) | Kto może zobaczyć, zmienić lub usunąć dane |
+| [API](reference/api.md#polski) | Endpointy, format danych, limity, paginacja i błędy |
+| [Logowanie i sesje](reference/security.md#polski) | Cookie, CSRF, CORS i unieważnianie dostępu |
 
-## Konwencje Dokumentacji
+<a id="pl-architektura-i-kod"></a>
 
-- Nazwy ról, statusów, priorytetów i endpointów są zapisywane tak jak w API.
-- Opisy stanu obecnego wynikają z kodu w repozytorium.
-- Planowane funkcje są oznaczone jako planowane i nie są mieszane z funkcjami działającymi.
-- Przykłady komend zakładają uruchamianie z głównego katalogu repozytorium, chyba że dokument mówi inaczej.
+### Architektura i kod
+
+| Dokument | Co znajdziesz |
+| --- | --- |
+| [Architektura i mapa plików](architecture/overview.md#polski) | Podział odpowiedzialności i miejsca do zmiany kodu |
+| [Frontend](architecture/frontend.md#polski) | Routing, stan, widoki, komponenty i komunikacja z API |
+| [Baza danych](architecture/database.md#polski) | Tabele, relacje, migracje i zapis załączników |
+
+<a id="pl-wdrożenie-i-utrzymanie"></a>
+
+### Wdrożenie i utrzymanie
+
+| Dokument | Co znajdziesz |
+| --- | --- |
+| [VPS z Nginx i GitHub Actions](operations/deployment.md#polski) | Przygotowanie, publikacja obrazów, kopie zapasowe i przywracanie wersji |
+| [Starszy wariant Caddy](operations/caddy.md#polski) | Osobny sposób wdrożenia z lokalnym budowaniem obrazów |
+| [Audyt z 13.10.2026](operations/security-audit.md#polski) | Wyniki przeglądu i pozostałe ryzyka |
+| [Roadmapa](roadmap.md#polski) | Priorytety i planowane funkcje |
+
+[Przejdź do wersji angielskiej](#english)
+
+---
+
+## English
+
+[Wróć do wersji polskiej](#polski)
+
+Choose a topic based on what you want to do. The shortest startup guide is in the [main README](../README.md#english).
+
+<a id="en-getting-started-and-local-development"></a>
+
+### Getting started and local development
+
+| Document | What it covers |
+| --- | --- |
+| [Docker](development/docker.md#english) | Compose settings, ports, logs, volumes and data resets |
+| [Backend and frontend separately](development/local.md#english) | Database for an IDE, environment variables, tests and builds |
+| [Demo data](development/demo-data.md#english) | Initial data, sample tickets and role testing |
+
+<a id="en-application-rules-and-api"></a>
+
+### Application rules and API
+
+| Document | What it covers |
+| --- | --- |
+| [Ticket workflow](reference/tickets.md#english) | Statuses, transitions, priorities, comments and history |
+| [Roles and permissions](reference/roles.md#english) | Who can view, change or delete data |
+| [API](reference/api.md#english) | Endpoints, data formats, limits, pagination and errors |
+| [Authentication and sessions](reference/security.md#english) | Cookies, CSRF, CORS and access revocation |
+
+<a id="en-architecture-and-code"></a>
+
+### Architecture and code
+
+| Document | What it covers |
+| --- | --- |
+| [Architecture and file map](architecture/overview.md#english) | Responsibilities and where to change the code |
+| [Frontend](architecture/frontend.md#english) | Routing, state, views, components and API calls |
+| [Database](architecture/database.md#english) | Tables, relationships, migrations and attachment storage |
+
+<a id="en-deployment-and-maintenance"></a>
+
+### Deployment and maintenance
+
+| Document | What it covers |
+| --- | --- |
+| [VPS with Nginx and GitHub Actions](operations/deployment.md#english) | Setup, image publishing, backups and rollback |
+| [Legacy Caddy setup](operations/caddy.md#english) | An alternative deployment with locally built images |
+| [Audit of 13 October 2026](operations/security-audit.md#english) | Review findings and remaining risks |
+| [Roadmap](roadmap.md#english) | Priorities and planned features |
+
+[Back to the Polish version](#polski)

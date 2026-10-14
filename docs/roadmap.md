@@ -1,186 +1,121 @@
-# Roadmap
+# Roadmapa / Roadmap
 
-Roadmapa rozdziela stan obecny od planów rozwoju. Aktualny kod zawiera działający rdzeń aplikacji helpdeskowej, jednak projekt nie osiągnął jeszcze poziomu jakości, kompletności i dopracowania, który uznałbym za satysfakcjonujący.
+[Polski](#polski) | [English](#english)
 
-## Stan Obecny
+## Polski
 
-Zaimplementowane:
+Podstawowe funkcje aplikacji są dostępne: obsługa kont i ról, zgłoszeń, komentarzy, plików i historii oraz panele użytkownika, agenta i administratora. Aktualny zakres opisuje [README](../README.md#polski), a ograniczenia bezpieczeństwa [audyt](operations/security-audit.md#polski).
 
-- backend Spring Boot z REST API,
-- frontend Vite jako SPA,
-- PostgreSQL w Docker Compose,
-- logowanie sesyjne przez `JSESSIONID`,
-- publiczna rejestracja konta `USER`,
-- role `USER`, `AGENT`, `ADMIN`,
-- profile użytkowników,
-- administracyjne zarządzanie użytkownikami,
-- administracyjne zarządzanie kategoriami,
-- tworzenie i edycja ticketów,
-- statusy i priorytety ticketów,
-- przypisanie ticketu do aktualnego agenta,
-- komentarze publiczne i wewnętrzne,
-- załączniki,
-- historia zmian,
-- dashboard użytkownika,
-- dashboard agenta,
-- podstawowy dashboard admina liczony częściowo po stronie frontendu,
-- lokalny Docker Compose,
-- produkcyjny Docker Compose z Caddy,
-- seed danych demonstracyjnych,
-- dokumentacja architektury, API, domeny, bazy, ról, uruchomienia i deployu.
+Ochrona CSRF, lista dozwolonych ról i pierwsza migracja Flyway są już wdrożone. Poniższe punkty opisują planowane prace.
 
-//oraz inne które nie pamiętam.
+<a id="pl-najbliższe-priorytety"></a>
 
-## Dokumentacja
+### Najbliższe priorytety
 
-Zadania dokumentacyjne z poprzedniej roadmapy zostały wykonane w katalogu `docs`.
+| Priorytet | Zadanie | Cel |
+| --- | --- | --- |
+| 1 | Ograniczenie liczby żądań, zasady przesyłania plików i obsługi sesji, kopie zapasowe z próbą odtworzenia | Ograniczenie ryzyk wskazanych w audycie |
+| 2 | Zapytania agregujące i indeksy bazy | Panely i listy dla większej liczby zgłoszeń |
+| 3 | Backendowy panel admina | Pełne metryki zamiast obliczeń z pierwszej strony listy |
+| 4 | Przekazywanie spraw między agentami oraz listy assigned-to-me/unassigned | Wygodniejsza praca zespołu |
+| 5 | OpenAPI/Swagger | Kontrakt API generowany z kodu |
+| 6 | Kolejne migracje i plan przejścia istniejących baz | Bezpieczne zmiany schematu |
 
-Utworzone albo przebudowane pliki:
+<a id="pl-backend-i-baza"></a>
 
-- `project-structure.md`,
-- `project-files.md`,
-- `frontend-architecture.md`,
-- `api-overview.md`,
-- `backend-api.md`,
-- `domain-ticket-flow.md`,
-- `ticket-workflow.md`,
-- `roles-and-permissions.md`,
-- `local-development.md`,
-- `docker-local-development.md`,
-- `database-model.md`,
-- `auth-session-security.md`,
-- `production-deployment.md`,
-- `test-accounts.md`.
+### Backend i baza
 
-Dalsze utrzymanie dokumentacji powinno iść razem ze zmianami kodu. Każdy nowy endpoint, rola, status, encja albo moduł frontendu powinien mieć aktualizację w docs (rzeczywistość zweryfikuje).
+- Indeksy filtrów zgłoszeń oraz powiązań historii, komentarzy i plików po ticket_id.
+- Agregacje paneli po stronie bazy.
+- `GET /api/admin/dashboard` oraz statystyki zgłoszeń, agentów, kategorii i aktywności.
+- `GET /api/agent/tickets/assigned-to-me`, `GET /api/agent/tickets/unassigned` i `PATCH /api/agent/tickets/{id}/reassign`.
+- Opcjonalny audyt operacji administracyjnych i wersjonowanie API.
 
-## Najbliższe Priorytety Techniczne
+Panel admina rozwijaj kolejno: podsumowania, obciążenie agentów, trend utworzonych/rozwiązanych spraw, zaległe zgłoszenia, metryki czasu, a potem SLA.
 
-1. Dodać migracje bazy danych.
-2. Dodać OpenAPI albo Swagger UI.
-3. Dodać allowlistę ról w `UserService`.
-4. Przenieść metryki dashboardów z pamięci do zapytań bazodanowych.
-5. Dodać endpoint reassignu ticketu do wskazanego agenta.
-6. Dodać dedykowane endpointy `assigned-to-me` i `unassigned`.
-7. Dodać CSRF token flow.
-8. Utwardzić obsługę załączników.
+<a id="pl-bezpieczeństwo-i-załączniki"></a>
 
+### Bezpieczeństwo i załączniki
 
-## Baza Danych
+- Reset hasła, weryfikacja e-mail i 2FA dla zespołu obsługi.
+- Unieważnianie pozostałych sesji po zmianie hasła.
+- Lista dozwolonych formatów, weryfikacja rozszerzeń i limity na użytkownika i zgłoszenie.
+- Czyszczenie osieroconych plików, opcjonalne skanowanie i przechowywanie w S3.
+- Monitoring, rotacja i bezpieczne utrzymanie kopii poza serwerem.
 
-Planowane:
+<a id="pl-frontend"></a>
 
-- Flyway albo Liquibase,
-- indeksy dla list i filtrów ticketów,
-- indeksy dla historii, komentarzy i załączników po `ticket_id`,
-- migracja z `ddl-auto=update` na tryb bez automatycznych zmian schematu w produkcji,
-- opcjonalna tabela audytu operacji administracyjnych.
+### Frontend
 
-## Bezpieczeństwo
+Podstawowe testy bezpieczeństwa już istnieją. Dalsze prace obejmują automatyczną analizę i formatowanie kodu, testy przepływów użytkownika, podział dużych widoków, lepsze stany ładowania i obsługę nowych endpointów.
 
-Planowane:
+<a id="pl-dalsze-funkcje-produktu"></a>
 
-- CSRF token flow,
-- zawężenie CORS w produkcji,
-- bezpieczne parametry cookie,
-- polityka czasu życia sesji,
-- reset hasła,
-- email verification,
-- 2FA dla kont staffu,
-- ograniczenie ról do allowlisty,
-- whitelist MIME załączników,
-- skanowanie plików jako przyszłe rozszerzenie.
+### Dalsze funkcje produktu
 
+SLA, powiadomienia e-mail i w aplikacji, baza wiedzy, szablony odpowiedzi, eksport CSV, raporty, integracje Slack/Teams, zgłoszenia przez e-mail, wiele organizacji oraz SSO/OAuth2.
 
-## Dashboard Admina
+SSE już odświeża szczegóły zgłoszenia. Pełny czat to osobny plan: moduł `helpdesk-chat-server` w Node.js/Socket.IO, pokój `ticket:ID` z autoryzacją przez backend, historia wiadomości i ChatPanel. Rozważane zdarzenia: join-ticket, message:new, typing:start, typing:stop i message:read.
 
-Obecny dashboard admina korzysta z listy użytkowników i pierwszej strony ticketów. To wystarcza do podstawowego podglądu, ale nie jest pełną analityką.
+[Przejdź do wersji angielskiej](#english)
 
-Planowany dashboard admina:
+---
 
-- ticket summary,
-- user summary,
-- agent workload,
-- backlog po statusie,
-- created vs resolved,
-- priority breakdown,
-- kategorie z największym obciążeniem,
-- requests needing attention,
-- ostatnia aktywność,
-- metryki SLA.
+## English
 
-Kolejność:
+[Wróć do wersji polskiej](#polski)
 
-1. Dodać `GET /api/admin/dashboard`.
-2. Przenieść KPI z frontendu do backendu.
-3. Dodać workload agentów.
-4. Dodać trend created vs resolved.
-5. Dodać stuck tickets.
-6. Dodać metryki czasowe.
-7. Dopiero potem wdrożyć pełne SLA.
+Core features are available: accounts and roles, tickets, comments, files, history, and user, agent and administrator dashboards. See the [README](../README.md#english) for the current scope and the [audit](operations/security-audit.md#english) for security limitations.
 
-## Frontend
+CSRF protection, the role allowlist and the first Flyway migration are already implemented. The items below describe planned work.
 
-Planowane:
+<a id="en-near-term-priorities"></a>
 
-- linting,
-- formatowanie,
-- testy utili i podstawowych flow,
-- rozbicie największych widoków na mniejsze komponenty,
-- lepsze stany ładowania dla widoków z wieloma requestami,
-- obsługa dedykowanych endpointów agenta po ich dodaniu,
-- pełniejszy dashboard admina po dodaniu backendu.
+### Near-term priorities
 
-## Załączniki
+| Priority | Task | Goal |
+| --- | --- | --- |
+| 1 | Rate limiting, upload/session policies, backups with a restore test | Reduce risks identified in the audit |
+| 2 | Aggregation queries and database indexes | Dashboards and lists for larger ticket volumes |
+| 3 | Backend administrator dashboard | Complete metrics instead of calculations from the first list page |
+| 4 | Reassignment and assigned-to-me/unassigned lists | Easier team workflows |
+| 5 | OpenAPI/Swagger | An API contract generated from code |
+| 6 | Further migrations and a plan for existing databases | Safe schema changes |
 
-Obecny stan:
+<a id="en-backend-and-database"></a>
 
-- limit 10 MB,
-- zapis pliku na dysku,
-- metadane w bazie,
-- ochrona dostępu przez ticket i komentarz wewnętrzny.
+### Backend and database
 
-Planowane:
+- Indexes for ticket filters and history/comment/file relationships by ticket_id.
+- Database-side dashboard aggregation.
+- `GET /api/admin/dashboard` and statistics for tickets, agents, categories and activity.
+- `GET /api/agent/tickets/assigned-to-me`, `GET /api/agent/tickets/unassigned` and `PATCH /api/agent/tickets/{id}/reassign`.
+- Optional administrative audit logging and API versioning.
 
-- whitelist MIME,
-- lepsza walidacja rozszerzeń,
-- limity per użytkownik albo per ticket,
-- okresowe czyszczenie plików osieroconych,
-- opcjonalne przeniesienie storage do S3 lub kompatybilnego rozwiązania.
+Develop the administrator dashboard in order: summaries, agent workload, created/resolved trends, stale tickets, time metrics and then SLA.
 
-## Realtime Chat
+<a id="en-security-and-attachments"></a>
 
-Realtime chat nie istnieje w kodzie.
+### Security and attachments
 
-Planowany kierunek:
+- Password reset, email verification and staff 2FA.
+- Revoking other sessions after a password change.
+- Allowed formats, extension validation and per-user/per-ticket limits.
+- Orphaned file cleanup, optional scanning and S3 storage.
+- Monitoring, backup rotation and secure off-server copies.
 
-- osobny moduł `helpdesk-chat-server`,
-- Node.js i Socket.IO,
-- jeden room na ticket, na przykład `ticket:123`,
-- autoryzacja dostępu do roomu przez backend,
-- historia wiadomości powiązana z ticketem,
-- frontendowy `ChatPanel` w szczegółach ticketu.
+<a id="en-frontend"></a>
 
-Minimalny kontrakt eventów:
+### Frontend
 
-- `join-ticket`,
-- `message:new`,
-- `typing:start`,
-- `typing:stop`,
-- `message:read`.
+Basic security tests already exist. Further work includes linting, formatting, user flow tests, splitting large views, better loading states and support for new endpoints.
 
-## Funkcje Produktowe
+<a id="en-further-product-features"></a>
 
-Kolejne obszary rozwoju:
+### Further product features
 
-- SLA i terminy odpowiedzi,
-- powiadomienia email,
-- powiadomienia in app,
-- baza wiedzy,
-- szablony odpowiedzi agentów,
-- eksport CSV,
-- raporty,
-- integracje Slack i Teams,
-- obsługa email jako kanału zgłoszeń,
-- multi tenant,
-- SSO lub OAuth2.
+SLA, email and in-app notifications, a knowledge base, reply templates, CSV exports, reports, Slack/Teams integrations, email tickets, multiple organizations and SSO/OAuth2.
+
+SSE already refreshes ticket details. Full chat is a separate plan: a Node.js/Socket.IO `helpdesk-chat-server` module, a `ticket:ID` room authorized by the backend, message history and ChatPanel. Proposed events: join-ticket, message:new, typing:start, typing:stop and message:read.
+
+[Back to the Polish version](#polski)
